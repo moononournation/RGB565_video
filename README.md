@@ -17,10 +17,10 @@ Simple example for playing RGB565 raw video
 
 ## Convert audio + video for SD card
 
-### video
-
-`ffmpeg -i input.mp4 -vf "fps=10,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 240_10fps.rgb`
-
 ### audio
 
 `ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 32000 -ac 1 -af "volume=0.5" 32000_u16le.pcm`
+
+### video
+
+`ffmpeg -i input.mp4 -vf "fps=10,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 224_10fps.rgb`
