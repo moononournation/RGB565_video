@@ -3,23 +3,27 @@
 #define VIDEO_HEIGHT 126
 #define VIDEO_FILENAME "/224_10fps.rgb"
 
-#include "SPI.h"
-#include "Arduino_ESP32SPI.h"
-#include "Arduino_Display.h"
+#include <SPI.h>
+#include <Arduino_HWSPI.h>
+// #include <Arduino_ESP32SPI.h>
+#include <Arduino_Display.h>
 
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32
 #define SS 4
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO /* MISO */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO /* MISO */);
 Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
 #elif defined(ARDUINO_ODROID_ESP32)
 #define TFT_BL 14
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(21 /* DC */, 5 /* CS */, SCK, MOSI, -1 /* MISO */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(21 /* DC */, 5 /* CS */, SCK, MOSI, -1 /* MISO */);
 // Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
 #elif defined(ARDUINO_T) // TTGO T-Watch
 #define TFT_BL 12
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, SCK, MOSI, -1 /* MISO */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, SCK, MOSI, -1 /* MISO */);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
 #define TFT_BL 2
@@ -27,12 +31,13 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, tr
 #define MOSI 19
 #define MISO 22
 #define SS 0
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, SCK, MOSI, -1 /* MISO */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, SCK, MOSI, -1 /* MISO */);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 #endif /* not a specific hardware */
 
-#include "FS.h"
-#include "SD.h"
+#include <FS.h>
+#include <SD.h>
 #include <driver/i2s.h>
 
 void setup()
@@ -70,10 +75,10 @@ void setup()
   i2s_zero_dma_buffer((i2s_port_t)0);
 
   // Init SD card
-  SPIClass spi = SPIClass(VSPI);
-  spi.begin(SCK, MISO, MOSI, SS);
-
-  if (!SD.begin(SS, spi, 80000000))
+  if (!SD.begin(SS, SPI, 80000000))
+  // SPIClass spi = SPIClass(VSPI);
+  // spi.begin(SCK, MISO, MOSI, SS);
+  // if (!SD.begin(SS, spi, 80000000))
   {
     Serial.println("Card Mount Failed");
   }
