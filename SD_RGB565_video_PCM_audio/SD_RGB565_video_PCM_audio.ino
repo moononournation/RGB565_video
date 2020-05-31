@@ -1,6 +1,7 @@
 #define AUDIO_FILENAME "/32000_u16le.pcm"
 #define VIDEO_WIDTH 224
 #define VIDEO_HEIGHT 126
+#define FPS 10
 #define VIDEO_FILENAME "/224_10fps.rgb"
 
 #include <SPI.h>
@@ -103,22 +104,46 @@ void setup()
 
         Serial.println("Start audio video");
         gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
+        int next_frame = 0;
+        int skipped_frames = 0;
+        unsigned long start_ms = millis();
+        unsigned long next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
         while (vFile.available() && aFile.available())
         {
-          // Dump video
-          int l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT * 2);
-          gfx->startWrite();
-          gfx->writePixels((uint16_t *)buf, l >> 1);
-          gfx->endWrite();
-
           // Dump audio
           aFile.read(buf, 6400);
           i2s_write_bytes((i2s_port_t)0, (char *)buf, 1600, 0);
           i2s_write_bytes((i2s_port_t)0, (char *)(buf + 1600), 1600, 0);
           i2s_write_bytes((i2s_port_t)0, (char *)(buf + 3200), 1600, 0);
           i2s_write_bytes((i2s_port_t)0, (char *)(buf + 4800), 1600, 0);
+
+          // Dump video
+          int l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+          if (millis() < next_frame_ms) // check show frame or skip frame
+          {
+            gfx->startWrite();
+            gfx->writePixels((uint16_t *)buf, l >> 1);
+            gfx->endWrite();
+            int remain_ms = next_frame_ms - millis();
+            if (remain_ms)
+            {
+              delay(remain_ms);
+            }
+          }
+          else
+          {
+            ++skipped_frames;
+            Serial.println(F("Skip frame"));
+          }
+          
+
+          next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
         }
+        int time_used = millis() - start_ms;
+        int played_frames = next_frame - 1 - skipped_frames;
+        float fps = 1000.0 * played_frames / time_used;
         Serial.println("End audio video");
+        Serial.printf("Played frame: %d, skipped frames: %d, time used: %d, expected FPS: %d, actual FPS: %f\n", played_frames, skipped_frames, time_used, FPS, fps);
 
         i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
 
