@@ -98,27 +98,41 @@ void setup()
           gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
           int next_frame = 0;
           int skipped_frames = 0;
-          int total_remain = 0;
+          unsigned long total_sd_pcm = 0;
+          unsigned long total_push_audio = 0;
+          unsigned long total_sd_rgb = 0;
+          unsigned long total_push_video = 0;
+          unsigned long total_remain = 0;
           unsigned long start_ms = millis();
+          unsigned long curr_ms = millis();
           unsigned long next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
           while (vFile.available() && aFile.available())
           {
             // Dump audio
             aFile.read(buf, 9600);
+            total_sd_pcm += millis() - curr_ms;
+            curr_ms = millis();
+
             i2s_write_bytes((i2s_port_t)0, (char *)buf, 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 1600), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 3200), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 4800), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 6400), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 8000), 1600, 0);
+            total_push_audio += millis() - curr_ms;
+            curr_ms = millis();
 
             // Dump video
             uint32_t l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+            total_sd_rgb += millis() - curr_ms;
+            curr_ms = millis();
+
             if (millis() < next_frame_ms) // check show frame or skip frame
             {
               gfx->startWrite();
               gfx->writePixels((uint16_t *)buf, l >> 1);
               gfx->endWrite();
+              total_push_video += millis() - curr_ms;
               int remain_ms = next_frame_ms - millis();
               if (remain_ms)
               {
@@ -132,16 +146,36 @@ void setup()
               Serial.println(F("Skip frame"));
             }
 
+            curr_ms = millis();
             next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
           }
           int time_used = millis() - start_ms;
+          Serial.println(F("End audio video"));
           int played_frames = next_frame - 1 - skipped_frames;
           float fps = 1000.0 * played_frames / time_used;
-          Serial.println(F("End audio video"));
-          Serial.printf("Played frame: %d\nSkipped frames: %d (%f %%)\nTime used: %d ms\nRemain: %d ms (%f %%)\nExpected FPS: %d\nActual FPS: %f\n", played_frames, skipped_frames, 100.0 * skipped_frames / played_frames, time_used, total_remain, 100.0 * total_remain / time_used, FPS, fps);
+          Serial.printf("Played frame: %d\n", played_frames);
+          Serial.printf("Skipped frames: %d (%f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
+          Serial.printf("Time used: %d ms\n", time_used);
+          Serial.printf("Expected FPS: %d\n", FPS);
+          Serial.printf("Actual FPS: %f\n", fps);
+          Serial.printf("SD PCM: %d ms (%f %%)\n", total_sd_pcm, 100.0 * total_sd_pcm / time_used);
+          Serial.printf("Push audio: %d ms (%f %%)\n", total_push_audio, 100.0 * total_push_audio / time_used);
+          Serial.printf("SD RGB: %d ms (%f %%)\n", total_sd_rgb, 100.0 * total_sd_rgb / time_used);
+          Serial.printf("Push video: %d ms (%f %%)\n", total_push_video, 100.0 * total_push_video / time_used);
+          Serial.printf("Remain: %d ms (%f %%)\n", total_remain, 100.0 * total_remain / time_used);
+
           gfx->setCursor(0, 0);
           gfx->setTextColor(WHITE, BLACK);
-          gfx->printf("Played frame: %d\nSkipped frames: %d (%f %%)\nTime used: %d ms\nRemain: %d ms (%f %%)\nExpected FPS: %d\nActual FPS: %f\n", played_frames, skipped_frames, 100.0 * skipped_frames / played_frames, time_used, total_remain, 100.0 * total_remain / time_used, FPS, fps);
+          gfx->printf("Played frame: %d\n", played_frames);
+          gfx->printf("Skipped frames: %d (%f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
+          gfx->printf("Time used: %d ms\n", time_used);
+          gfx->printf("Expected FPS: %d\n", FPS);
+          gfx->printf("Actual FPS: %f\n", fps);
+          gfx->printf("SD PCM: %d ms (%f %%)\n", total_sd_pcm, 100.0 * total_sd_pcm / time_used);
+          gfx->printf("Push audio: %d ms (%f %%)\n", total_push_audio, 100.0 * total_push_audio / time_used);
+          gfx->printf("SD RGB: %d ms (%f %%)\n", total_sd_rgb, 100.0 * total_sd_rgb / time_used);
+          gfx->printf("Push video: %d ms (%f %%)\n", total_push_video, 100.0 * total_push_video / time_used);
+          gfx->printf("Remain: %d ms (%f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
           i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
 
