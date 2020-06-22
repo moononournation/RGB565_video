@@ -93,6 +93,10 @@ void setup()
         else
         {
           uint8_t *buf = (uint8_t *)malloc(VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+          if (!buf)
+          {
+            Serial.println(F("buf malloc failed!"));
+          }
 
           Serial.println(F("Start audio video"));
           gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
@@ -122,7 +126,7 @@ void setup()
             total_push_audio += millis() - curr_ms;
             curr_ms = millis();
 
-            // Dump video
+            // Load video to buf
             uint32_t l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT * 2);
             total_sd_rgb += millis() - curr_ms;
             curr_ms = millis();
@@ -134,7 +138,7 @@ void setup()
               gfx->endWrite();
               total_push_video += millis() - curr_ms;
               int remain_ms = next_frame_ms - millis();
-              if (remain_ms)
+              if (remain_ms > 0)
               {
                 total_remain += remain_ms;
                 delay(remain_ms);
@@ -178,15 +182,15 @@ void setup()
           gfx->printf("Remain: %d ms (%f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
           i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
-
-#ifdef TFT_BL
-          delay(60000);
-          digitalWrite(TFT_BL, LOW);
-#endif
         }
       }
     }
   }
+
+#ifdef TFT_BL
+  delay(60000);
+  digitalWrite(TFT_BL, LOW);
+#endif
 }
 
 void loop(void)

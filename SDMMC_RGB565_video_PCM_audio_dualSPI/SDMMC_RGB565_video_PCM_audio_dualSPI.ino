@@ -1,42 +1,32 @@
-#define AUDIO_FILENAME "/32000_u16le.pcm"
+#define AUDIO_FILENAME "/48000_u16le.pcm"
 #define VIDEO_WIDTH 224L
 #define VIDEO_HEIGHT 126L
-#define FPS 10
-#define VIDEO_FILENAME "/224_10fps.rgb"
-
-#include <SPI.h>
-#include <Arduino_HWSPI.h>
-#include <Arduino_Display.h>
-
-#if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
-#define TFT_BL 32
-#define SS 4
-Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
-Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
-#elif defined(ARDUINO_ODROID_ESP32)
-#define TFT_BL 14
-Arduino_HWSPI *bus = new Arduino_HWSPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-// Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
-#elif defined(ARDUINO_T) // TTGO T-Watch
-#define TFT_BL 12
-Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
-#else /* not a specific hardware */
-#define TFT_BL 2
-#define SCK 21
-#define MOSI 19
-#define MISO 22
-#define SS 0
-Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
-// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, SCK, MOSI, -1 /* MISO */);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
-#endif /* not a specific hardware */
+#define FPS 12
+#define VIDEO_FILENAME "/224_12fps.rgb"
+/*
+ * Connect the SD card to the following pins:
+ *
+ * SD Card | ESP32
+ *    D2       12
+ *    D3       13
+ *    CMD      15
+ *    VSS      GND
+ *    VDD      3.3V
+ *    CLK      14
+ *    VSS      GND
+ *    D0       2  (add 1K pull up after flashing)
+ *    D1       4
+ */
 
 #include <WiFi.h>
 #include <FS.h>
-#include <SD.h>
+#include <SD_MMC.h>
 #include <driver/i2s.h>
+#include <Arduino_ESP32SPI.h>
+#include <Arduino_Display.h>
+#define TFT_BL 22
+Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */, VSPI);
+Arduino_ST7789 *gfx = new Arduino_ST7789(bus, 33 /* RST */, 3 /* rotation */, true /* IPS */);
 
 void setup()
 {
@@ -53,10 +43,8 @@ void setup()
 #endif
 
   // Init SD card
-  if (!SD.begin(SS, SPI, 80000000))
-  // SPIClass spi = SPIClass(VSPI);
-  // spi.begin(SCK, MISO, MOSI, SS);
-  // if (!SD.begin(SS, spi, 80000000))
+  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
+  if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: Card Mount Failed!"));
     gfx->println(F("ERROR: Card Mount Failed!"));
@@ -66,12 +54,12 @@ void setup()
     // Init Audio
     i2s_config_t i2s_config_dac = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN),
-        .sample_rate = 32000,
+        .sample_rate = 48000,
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 5,
+        .dma_buf_count = 6,
         .dma_buf_len = 800,
         .use_apll = false,
     };
@@ -87,7 +75,7 @@ void setup()
       i2s_set_dac_mode(I2S_DAC_CHANNEL_RIGHT_EN);
       i2s_zero_dma_buffer((i2s_port_t)0);
 
-      File aFile = SD.open(AUDIO_FILENAME);
+      File aFile = SD_MMC.open(AUDIO_FILENAME);
       if (!aFile || aFile.isDirectory())
       {
         Serial.println(F("ERROR: Failed to open audio file for reading!"));
@@ -95,7 +83,7 @@ void setup()
       }
       else
       {
-        File vFile = SD.open(VIDEO_FILENAME);
+        File vFile = SD_MMC.open(VIDEO_FILENAME);
         if (!vFile || vFile.isDirectory())
         {
           Serial.println(F("ERROR: Failed to open video file for reading"));
@@ -124,7 +112,7 @@ void setup()
           while (vFile.available() && aFile.available())
           {
             // Dump audio
-            aFile.read(buf, 6400);
+            aFile.read(buf, 8000);
             total_sd_pcm += millis() - curr_ms;
             curr_ms = millis();
 
@@ -132,6 +120,7 @@ void setup()
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 1600), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 3200), 1600, 0);
             i2s_write_bytes((i2s_port_t)0, (char *)(buf + 4800), 1600, 0);
+            i2s_write_bytes((i2s_port_t)0, (char *)(buf + 6400), 1600, 0);
             total_push_audio += millis() - curr_ms;
             curr_ms = millis();
 

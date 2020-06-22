@@ -11,7 +11,7 @@ Simple example for playing RGB565 raw video
 ### 192x108@15fps
 `ffmpeg -i input.mp4 -vf "fps=15,scale=192:-1" -c:v rawvideo -pix_fmt rgb565le 192_15fps.rgb`
 
-### 240x135@15FPS
+### 240x135@10FPS
 
 `ffmpeg -i input.mp4 -vf "fps=10,scale=240:-1" -c:v rawvideo -pix_fmt rgb565le 240_10fps.rgb`
 
@@ -33,6 +33,14 @@ Simple example for playing RGB565 raw video
 
 `ffmpeg -i input.mp4 -vf "fps=10,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 224_10fps.rgb`
 
+#### 224x126@12fps
+
+`ffmpeg -i input.mp4 -vf "fps=12,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 224_12fps.rgb`
+
 #### 220x132@10fps
 
 `ffmpeg -i input.mp4 -vf "fps=10,scale=-1:132,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_10fps.rgb`
+
+#### 192x108@15fps
+
+`ffmpeg -i input.mp4 -vf "fps=15,scale=192:-1" -c:v rawvideo -pix_fmt rgb565le 192_15fps.rgb`
