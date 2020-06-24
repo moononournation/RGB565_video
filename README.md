@@ -44,3 +44,17 @@ Simple example for playing RGB565 raw video
 #### 192x108@15fps
 
 `ffmpeg -i input.mp4 -vf "fps=15,scale=192:-1" -c:v rawvideo -pix_fmt rgb565le 192_15fps.rgb`
+
+### Animated GIF
+
+#### 220x176@15fps
+
+`ffmpeg -i input.mp4 -vf "fps=15,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 220_15fps.gif`
+
+#### 240x135@15fps
+
+`ffmpeg -i input.mp4 -vf "fps=15,scale=240:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 240_15fps.gif`
+
+#### 288x162@15fps
+
+`ffmpeg -i input.mp4 -vf "fps=15,scale=288:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 288_15fps.gif`
