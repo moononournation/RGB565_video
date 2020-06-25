@@ -1,6 +1,4 @@
 #define AUDIO_FILENAME "/48000_u16le.pcm"
-#define VIDEO_WIDTH 220L
-#define VIDEO_HEIGHT 176L
 #define FPS 15
 #define VIDEO_FILENAME "/220_15fps.gif"
 /*
@@ -60,7 +58,7 @@ static void videoTask(void *arg)
       {
         unsigned long ms = millis();
         gfx->startWrite();
-        gfx->writeIndexedPixels(buf, gif->palette->colors, VIDEO_WIDTH * VIDEO_HEIGHT);
+        gfx->writeIndexedPixels(buf, gif->palette->colors, gif->width * gif->height);
         gfx->endWrite();
         total_push_video += millis() - ms;
         played_frames++;
@@ -143,30 +141,30 @@ void setup()
           }
           else
           {
-            int32_t s = VIDEO_WIDTH * VIDEO_HEIGHT;
-            vBuf1 = (uint8_t *)malloc(s);
-            if (!vBuf1)
+            gif = gd_open_gif(&vFile);
+            if (!gif)
             {
-              Serial.println(F("vBuf1 malloc failed!"));
+              Serial.println(F("ERROR: gd_open_gif() failed!"));
+              gfx->println(F("ERROR: gd_open_gif() failed!"));
             }
             else
             {
-              vBuf2 = (uint8_t *)malloc(s);
-              if (!vBuf2)
+              int32_t s = gif->width * gif->height;
+              vBuf1 = (uint8_t *)malloc(s);
+              if (!vBuf1)
               {
-                Serial.println(F("vBuf2 malloc failed!"));
+                Serial.println(F("vBuf1 malloc failed!"));
               }
               else
               {
-
-                gif = gd_open_gif(&vFile);
-                if (!gif)
+                vBuf2 = (uint8_t *)malloc(s);
+                if (!vBuf2)
                 {
-                  Serial.println(F("ERROR: gd_open_gif() failed!"));
-                  gfx->println(F("ERROR: gd_open_gif() failed!"));
+                  Serial.println(F("vBuf2 malloc failed!"));
                 }
                 else
                 {
+
                   xTaskCreatePinnedToCore(&videoTask, "videoTask", 2048, NULL, 1, NULL, 0);
 
                   int res;
@@ -174,7 +172,7 @@ void setup()
                   start_ms = millis();
                   curr_ms = millis();
                   next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
-                  gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
+                  gfx->setAddrWindow((gfx->width() - gif->width) / 2, (gfx->height() - gif->height) / 2, gif->width, gif->height);
                   while (vFile.available() && aFile.available())
                   {
                     // Dump audio
@@ -202,7 +200,7 @@ void setup()
                       res = gd_get_frame(gif, vBuf1);
                       loaded_buffer_idx = 1;
                     }
-                    
+
                     if (res < 0)
                     {
                       Serial.println(F("ERROR: gd_get_frame() failed!"));

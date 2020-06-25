@@ -1,20 +1,36 @@
-#define VIDEO_WIDTH 240L
-#define VIDEO_HEIGHT 135L
-#define FPS 10
+/*
+ * Please select Partition Scheme: No OTA (1MB APP/3MB SPIFFS)
+ * And upload SPIFFS data with ESP32 Sketch Data Upload:
+ * https://github.com/me-no-dev/arduino-esp32fs-plugin
+ */
+#define VIDEO_WIDTH 220L
+#define VIDEO_HEIGHT 124L
+#define FPS 12
 #define VIDEO_FILENAME "/output.rgb"
 
-#include <SPI.h>
+#include <WiFi.h>
+#include <FS.h>
+#include <SPIFFS.h>
 #include <Arduino_ESP32SPI.h>
 #include <Arduino_Display.h>
 
 // TTGO T-Display
 #define TFT_BL 4
-Arduino_DataBus *bus = new Arduino_ESP32SPI(16 /* DC */, 5 /* CS */, 18 /* SCK */, 19 /* MOSI */, -1 /* MISO */, VSPI /* spi_num */);
+Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(16 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */, VSPI /* spi_num */);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, 23 /* RST */, 1 /* rotation */, true /* IPS */, 135 /* width */, 240 /* height */, 53 /* col offset 1 */, 40 /* row offset 1 */, 52 /* col offset 2 */, 40 /* row offset 2 */);
 
-#include <WiFi.h>
-#include <FS.h>
-#include <SPIFFS.h>
+// #define TFT_BL 22
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */, VSPI /* spi_num */);
+// Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
+
+int next_frame = 0;
+int played_frames = 0;
+unsigned long total_sd_pcm = 0;
+unsigned long total_push_audio = 0;
+unsigned long total_sd_rgb = 0;
+unsigned long total_push_video = 0;
+unsigned long total_remain = 0;
+unsigned long start_ms, curr_ms, next_frame_ms;
 
 void setup()
 {
@@ -53,15 +69,10 @@ void setup()
       }
 
       Serial.println("Start video");
+      start_ms = millis();
+      curr_ms = millis();
+      next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
       gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
-      int next_frame = 0;
-      int skipped_frames = 0;
-      unsigned long total_sd_rgb = 0;
-      unsigned long total_push_video = 0;
-      unsigned long total_remain = 0;
-      unsigned long start_ms = millis();
-      unsigned long curr_ms = millis();
-      unsigned long next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
       while (vFile.available())
       {
 

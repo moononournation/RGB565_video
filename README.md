@@ -4,24 +4,19 @@ Simple example for playing RGB565 raw video
 
 ## Convert video for SPIFFS
 
-`ffmpeg -t 1 -i input.mp4 -vf "fps=12,scale=240:-1" -c:v rawvideo -pix_fmt rgb565le output.rgb`
+#### 220x124@12fps
+
+`ffmpeg -t 1 -i input.mp4 -vf "fps=12,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le output.rgb`
 
 ## Convert video for SD card
 
-### 192x108@15fps
-`ffmpeg -i input.mp4 -vf "fps=15,scale=192:-1" -c:v rawvideo -pix_fmt rgb565le 192_15fps.rgb`
+#### 220x124@10fps
 
-### 240x135@10FPS
-
-`ffmpeg -i input.mp4 -vf "fps=10,scale=240:-1" -c:v rawvideo -pix_fmt rgb565le 240_10fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=10,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le 220_25fps.rgb`
 
 ## Convert audio + video for SD card
 
 ### audio
-
-#### 32 kHz
-
-`ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 32000 -ac 1 -af "volume=0.5" 32000_u16le.pcm`
 
 #### 48 kHz
 
@@ -29,31 +24,19 @@ Simple example for playing RGB565 raw video
 
 ### video
 
-#### 224x126@10fps
+#### 220x124@12fps
 
-`ffmpeg -i input.mp4 -vf "fps=10,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 224_10fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=12,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le 220_12fps.rgb`
 
-#### 224x126@12fps
+#### 220x176@8fps
 
-`ffmpeg -i input.mp4 -vf "fps=12,scale=224:-1" -c:v rawvideo -pix_fmt rgb565le 224_12fps.rgb`
-
-#### 220x132@10fps
-
-`ffmpeg -i input.mp4 -vf "fps=10,scale=-1:132,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_10fps.rgb`
-
-#### 192x108@15fps
-
-`ffmpeg -i input.mp4 -vf "fps=15,scale=192:-1" -c:v rawvideo -pix_fmt rgb565le 192_15fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=8,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_8fps.rgb`
 
 ### Animated GIF
 
 #### 220x176@15fps
 
 `ffmpeg -i input.mp4 -vf "fps=15,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 220_15fps.gif`
-
-#### 240x135@15fps
-
-`ffmpeg -i input.mp4 -vf "fps=15,scale=240:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 240_15fps.gif`
 
 #### 288x162@15fps
 
