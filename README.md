@@ -8,12 +8,6 @@ Simple example for playing RGB565 raw video
 
 `ffmpeg -t 1 -i input.mp4 -vf "fps=12,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le output.rgb`
 
-## Convert video for SD card
-
-#### 220x124@10fps
-
-`ffmpeg -i input.mp4 -vf "fps=10,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le 220_25fps.rgb`
-
 ## Convert audio + video for SD card
 
 ### audio
@@ -24,9 +18,9 @@ Simple example for playing RGB565 raw video
 
 ### video
 
-#### 220x124@12fps
+#### 220x176@10fps
 
-`ffmpeg -i input.mp4 -vf "fps=12,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le 220_12fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=12,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_10fps.rgb`
 
 #### 220x176@8fps
 

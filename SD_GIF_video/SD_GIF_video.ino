@@ -32,6 +32,7 @@ Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 #endif /* not a specific hardware */
 
 #include "gifdec.h"
+
 void setup()
 {
   WiFi.mode(WIFI_OFF);
@@ -55,16 +56,16 @@ void setup()
   else
   {
     int t_fstart = 0, t_delay = 0, t_real_delay, res, delay_until;
-    File fp = SD.open(GIF_FILE);
-    // File fp = SD_MMC.open(GIF_FILE);
-    if (!fp)
+    File vFile = SD.open(GIF_FILE);
+    // File vFile = SD_MMC.open(GIF_FILE);
+    if (!vFile)
     {
       Serial.println(F("ERROR: File open failed!"));
       gfx->println(F("ERROR: File open failed!"));
     }
     else
     {
-      gd_GIF *gif = gd_open_gif(&fp);
+      gd_GIF *gif = gd_open_gif(&vFile);
       if (!gif)
       {
         Serial.println(F("gd_open_gif() failed!"));

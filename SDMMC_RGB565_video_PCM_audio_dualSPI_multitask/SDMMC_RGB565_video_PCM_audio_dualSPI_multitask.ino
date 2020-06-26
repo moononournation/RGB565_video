@@ -1,8 +1,8 @@
 #define AUDIO_FILENAME "/48000_u16le.pcm"
 #define VIDEO_WIDTH 220L
-#define VIDEO_HEIGHT 124L
-#define FPS 12
-#define VIDEO_FILENAME "/220_12fps.rgb"
+#define VIDEO_HEIGHT 176L
+#define FPS 10
+#define VIDEO_FILENAME "/220_10fps.rgb"
 /*
  * Connect the SD card to the following pins:
  *
@@ -58,10 +58,13 @@ static void videoTask(void *arg)
       {
         unsigned long ms = millis();
         gfx->startWrite();
-        gfx->writePixels((uint16_t *)buf, VIDEO_WIDTH * VIDEO_HEIGHT);
+        gfx->writePixels((uint16_t *)buf, VIDEO_WIDTH * VIDEO_HEIGHT / 2);
         gfx->endWrite();
         total_push_video += millis() - ms;
-        played_frames++;
+        if (showed_buffer_idx == 2)
+        {
+          played_frames++;
+        }
       }
     }
     else
@@ -102,7 +105,7 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 6,
+        .dma_buf_count = 7,
         .dma_buf_len = 800,
         .use_apll = false,
     };
@@ -134,21 +137,21 @@ void setup()
         }
         else
         {
-          aBuf = (uint8_t *)malloc(8000);
+          aBuf = (uint8_t *)malloc(4800);
           if (!aBuf)
           {
             Serial.println(F("aBuf malloc failed!"));
           }
           else
           {
-            vBuf1 = (uint8_t *)malloc(VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+            vBuf1 = (uint8_t *)malloc(VIDEO_WIDTH * VIDEO_HEIGHT);
             if (!vBuf1)
             {
               Serial.println(F("vBuf1 malloc failed!"));
             }
             else
             {
-              vBuf2 = (uint8_t *)malloc(VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+              vBuf2 = (uint8_t *)malloc(VIDEO_WIDTH * VIDEO_HEIGHT);
               if (!vBuf2)
               {
                 Serial.println(F("vBuf2 malloc failed!"));
@@ -160,37 +163,38 @@ void setup()
                 Serial.println(F("Start audio video"));
                 start_ms = millis();
                 curr_ms = millis();
-                next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+                next_frame_ms = start_ms + (++next_frame * 1000 / FPS / 2);
                 gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
                 while (vFile.available() && aFile.available())
                 {
                   // Dump audio
-                  aFile.read(aBuf, 8000);
+                  aFile.read(aBuf, 4800);
                   total_sd_pcm += millis() - curr_ms;
                   curr_ms = millis();
 
                   i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 1600, 0);
                   i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1600), 1600, 0);
                   i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3200), 1600, 0);
-                  i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4800), 1600, 0);
-                  i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 6400), 1600, 0);
                   total_push_audio += millis() - curr_ms;
                   curr_ms = millis();
 
                   // Load video to buf
                   uint8_t *buf = (loaded_buffer_idx == 1) ? vBuf2 : vBuf1;
-                  uint32_t l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT * 2);
+                  uint32_t l = vFile.read(buf, VIDEO_WIDTH * VIDEO_HEIGHT);
                   loaded_buffer_idx = (loaded_buffer_idx == 1) ? 2 : 1;
                   total_sd_rgb += millis() - curr_ms;
-                  int remain_ms = next_frame_ms - millis();
-                  total_remain += remain_ms;
-                  if (remain_ms > 0)
+                  if (loaded_buffer_idx == 2)
                   {
-                    delay(remain_ms);
-                  }
+                    int remain_ms = next_frame_ms - millis();
+                    total_remain += remain_ms;
+                    if (remain_ms > 0)
+                    {
+                      delay(remain_ms);
+                    }
 
+                    next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+                  }
                   curr_ms = millis();
-                  next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
                 }
                 int time_used = millis() - start_ms;
                 Serial.println(F("End audio video"));

@@ -42,6 +42,7 @@ unsigned long total_sd_rgb = 0;
 unsigned long total_push_video = 0;
 unsigned long total_remain = 0;
 unsigned long start_ms, curr_ms, next_frame_ms;
+
 void setup()
 {
   WiFi.mode(WIFI_OFF);
