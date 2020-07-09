@@ -1,9 +1,10 @@
-// #define GIF_FILE "/220_15fps.gif"
-#define GIF_FILE "/288_15fps.gif"
+ #define GIF_FILE "/220_15fps.gif"
+//#define GIF_FILE "/288_15fps.gif"
 
 #include <WiFi.h>
 #include <FS.h>
 #include <SD.h>
+#include <SD_MMC.h>
 #include <Arduino_HWSPI.h>
 #include <Arduino_Display.h>
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
@@ -26,8 +27,9 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, tr
 #define MOSI 23
 #define MISO 19
 #define SS 0
-Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
+// Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 #endif /* not a specific hardware */
 
@@ -49,6 +51,7 @@ void setup()
 
   // Init SD card
   if (!SD.begin(SS, SPI, 80000000))
+  // if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: SD card mount failed!"));
     gfx->println(F("ERROR: SD card mount failed!"));

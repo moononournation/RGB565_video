@@ -35,3 +35,13 @@ Simple example for playing RGB565 raw video
 #### 288x162@15fps
 
 `ffmpeg -i input.mp4 -vf "fps=15,scale=288:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 288_15fps.gif`
+
+### Motion JPEG
+
+#### 220x176@10fps
+
+`ffmpeg -i input.mp4 -vf "fps=10,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 4 220_10fps.mjpeg`
+
+#### 320x240@5fps
+
+`ffmpeg -i input.mp4 -vf "fps=5,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 4 320_5fps.mjpeg`

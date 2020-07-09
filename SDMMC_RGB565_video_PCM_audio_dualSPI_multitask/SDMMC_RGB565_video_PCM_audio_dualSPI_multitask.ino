@@ -168,13 +168,16 @@ void setup()
                 while (vFile.available() && aFile.available())
                 {
                   // Dump audio
-                  aFile.read(aBuf, 4800);
+                  aFile.read(aBuf, 9600);
                   total_sd_pcm += millis() - curr_ms;
                   curr_ms = millis();
 
                   i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 1600, 0);
                   i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1600), 1600, 0);
                   i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3200), 1600, 0);
+                  i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4800), 1600, 0);
+                  i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 6400), 1600, 0);
+                  i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 8000), 1600, 0);
                   total_push_audio += millis() - curr_ms;
                   curr_ms = millis();
 
