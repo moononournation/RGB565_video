@@ -200,11 +200,11 @@ void setup()
     }
   }
 #ifdef TFT_BL
-    delay(60000);
-    digitalWrite(TFT_BL, LOW);
+  delay(60000);
+  digitalWrite(TFT_BL, LOW);
 #endif
-  }
+}
 
-  void loop(void)
-  {
-  }
+void loop(void)
+{
+}

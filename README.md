@@ -16,6 +16,10 @@ Simple example for playing RGB565 raw video
 
 `ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 48000 -ac 1 -af "volume=0.5" 48000_u16le.pcm`
 
+#### MP3
+
+`ffmpeg -i input.mp4 -ac 1 -q:a 9 44100.mp3`
+
 ### video
 
 #### 220x176@10fps
@@ -38,10 +42,10 @@ Simple example for playing RGB565 raw video
 
 ### Motion JPEG
 
-#### 220x176@10fps
+#### 220x176@24fps
 
-`ffmpeg -i input.mp4 -vf "fps=10,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 4 220_10fps.mjpeg`
+`ffmpeg -i input.mp4 -vf "fps=24,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 9 220_24fps.mjpeg`
 
-#### 320x240@5fps
+#### 320x240@12fps
 
-`ffmpeg -i input.mp4 -vf "fps=5,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 4 320_5fps.mjpeg`
+`ffmpeg -i input.mp4 -vf "fps=12,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_12fps.mjpeg`
