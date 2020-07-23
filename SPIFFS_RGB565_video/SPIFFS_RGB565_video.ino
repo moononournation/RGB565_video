@@ -3,6 +3,7 @@
  * And upload SPIFFS data with ESP32 Sketch Data Upload:
  * https://github.com/me-no-dev/arduino-esp32fs-plugin
  */
+/* Video src: https://youtu.be/uZ2de1VC4Ks */
 #define VIDEO_WIDTH 220L
 #define VIDEO_HEIGHT 124L
 #define FPS 12
@@ -47,7 +48,7 @@ void setup()
 #endif
 
   // Init SPIFFS
-  if (!SPIFFS.begin(true))
+  if (!SPIFFS.begin())
   {
     Serial.println(F("ERROR: SPIFFS Mount Failed!"));
     gfx->println(F("ERROR: SPIFFS Mount Failed!"));
