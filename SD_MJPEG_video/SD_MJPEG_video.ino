@@ -1,11 +1,9 @@
-#define MJPEG_FILE "/220_24fps.mjpeg"
+#define MJPEG_FILENAME "/220_30fps.mjpeg"
 #define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
-// #define MJPEG_FILE "/320_12fps.mjpeg"
-// #define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
 #include <WiFi.h>
-#include <FS.h>
 #include <SD.h>
 #include <SD_MMC.h>
+
 #include <Arduino_HWSPI.h>
 #include <Arduino_Display.h>
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
@@ -23,13 +21,16 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, tr
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
-#define TFT_BL 22
 #define SCK 18
 #define MOSI 23
 #define MISO 19
 #define SS 0
+#define TFT_BL 22
+#define TFT_BRIGHTNESS 128
+// ST7789 Display
 // Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
+// ILI9225 Display
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 #endif /* not a specific hardware */
@@ -47,12 +48,14 @@ void setup()
   gfx->fillScreen(BLACK);
 
 #ifdef TFT_BL
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, HIGH);
+  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
+  ledcSetup(1, 12000, 8);       // 12 kHz PWM, 8-bit resolution
+  ledcWrite(1, TFT_BRIGHTNESS); // brightness 0 - 255
 #endif
 
   // Init SD card
-  if (!SD.begin(SS, SPI, 80000000))
+  if (!SD.begin(SS, SPI, 80000000)) /* SPI bus mode */
+  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
   // if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: SD card mount failed!"));
@@ -60,33 +63,38 @@ void setup()
   }
   else
   {
-    int t_fstart = 0, t_delay = 0, t_real_delay, res, delay_until;
-    File vFile = SD.open(MJPEG_FILE);
-    // File vFile = SD_MMC.open(MJPEG_FILE);
-    if (!vFile)
+    File vFile = SD.open(MJPEG_FILENAME);
+    // File vFile = SD_MMC.open(MJPEG_FILENAME);
+    if (!vFile || vFile.isDirectory())
     {
-      Serial.println(F("ERROR: File open failed!"));
-      gfx->println(F("ERROR: File open failed!"));
+      Serial.println(F("ERROR: Failed to open " MJPEG_FILENAME " file for reading"));
+      gfx->println(F("ERROR: Failed to open " MJPEG_FILENAME " file for reading"));
     }
     else
     {
       uint8_t *mjpeg_buf = (uint8_t *)malloc(MJPEG_BUFFER_SIZE);
-
-      mjpeg.setup(vFile, mjpeg_buf, gfx, true);
-
-      Serial.println("MJPEG start");
-      while (mjpeg.readMjpegBuf())
+      if (!mjpeg_buf)
       {
-        mjpeg.drawJpg();
+        Serial.println(F("mjpeg_buf malloc failed!"));
       }
-
-      Serial.println("MJPEG end");
-      vFile.close();
+      else
+      {
+        Serial.println(F("MJPEG video start"));
+        mjpeg.setup(vFile, mjpeg_buf, gfx, true);
+        // Read video
+        while (mjpeg.readMjpegBuf())
+        {
+          // Play video
+          mjpeg.drawJpg();
+        }
+        Serial.println(F("MJPEG video end"));
+        vFile.close();
+      }
     }
   }
 #ifdef TFT_BL
   delay(60000);
-  digitalWrite(TFT_BL, LOW);
+  ledcDetachPin(TFT_BL);
 #endif
 }
 

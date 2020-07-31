@@ -6,15 +6,15 @@ Simple example for playing RGB565 raw video
 
 #### 220x124@12fps
 
-`ffmpeg -t 1 -i input.mp4 -vf "fps=12,scale=220:-1" -c:v rawvideo -pix_fmt rgb565le output.rgb`
+`ffmpeg -t 2 -i input.mp4 -vf "fps=15,scale=220:-1" -c:v rawvideo -pix_fmt rgb565be output.rgb`
 
 ## Convert audio + video for SD card
 
 ### audio
 
-#### 48 kHz
+#### 44.1 kHz
 
-`ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 48000 -ac 1 -af "volume=0.5" 48000_u16le.pcm`
+`ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 44100 -ac 1 -af "volume=0.5" 44100_u16le.pcm`
 
 #### MP3
 
@@ -22,29 +22,33 @@ Simple example for playing RGB565 raw video
 
 ### video
 
-#### 220x176@10fps
+#### 220x176@7fps
 
-`ffmpeg -i input.mp4 -vf "fps=12,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_10fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=7,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_7fps.rgb`
 
-#### 220x176@8fps
+#### 220x176@9fps
 
-`ffmpeg -i input.mp4 -vf "fps=8,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_8fps.rgb`
+`ffmpeg -i input.mp4 -vf "fps=9,scale=-1:176,crop=220:in_h:(in_w-220)/2:0" -c:v rawvideo -pix_fmt rgb565le 220_9fps.rgb`
 
 ### Animated GIF
 
+#### 220x176@12fps
+
+`ffmpeg -i input.mp4 -vf "fps=12,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop -1 220_12fps.gif`
+
 #### 220x176@15fps
 
-`ffmpeg -i input.mp4 -vf "fps=15,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 220_15fps.gif`
-
-#### 288x162@15fps
-
-`ffmpeg -i input.mp4 -vf "fps=15,scale=288:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 288_15fps.gif`
+`ffmpeg -i input.mp4 -vf "fps=15,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop -1 220_15fps.gif`
 
 ### Motion JPEG
 
 #### 220x176@24fps
 
 `ffmpeg -i input.mp4 -vf "fps=24,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 9 220_24fps.mjpeg`
+
+#### 220x176@30fps
+
+`ffmpeg -i input.mp4 -vf "fps=30,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 9 220_30fps.mjpeg`
 
 #### 320x240@12fps
 
