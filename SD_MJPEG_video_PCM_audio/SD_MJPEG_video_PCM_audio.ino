@@ -2,6 +2,8 @@
 #define FPS 30
 #define MJPEG_FILENAME "/220_30fps.mjpeg"
 #define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
+// #define MJPEG_FILENAME "/320_15fps.mjpeg"
+// #define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
 #define READ_BUFFER_SIZE 2048
 /*
  * Connect the SD card to the following pins:
@@ -19,20 +21,38 @@
  */
 
 #include <WiFi.h>
+#include <SD.h>
 #include <SD_MMC.h>
 #include <driver/i2s.h>
 
-#include <Arduino_ESP32SPI.h>
+#include <Arduino_HWSPI.h>
 #include <Arduino_Display.h>
 #define TFT_BRIGHTNESS 128
+#if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
+#define TFT_BL 32
+#define SS 4
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
+Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
+#elif defined(ARDUINO_ODROID_ESP32)
+#define TFT_BL 14
+Arduino_HWSPI *bus = new Arduino_HWSPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
+// Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
+Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
+#elif defined(ARDUINO_T) // TTGO T-Watch
+#define TFT_BL 12
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
+Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
+#else /* not a specific hardware */
+#define SS 0
 // ST7789 Display
 // #define TFT_BL 22
-// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+// Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
 #define TFT_BL 22
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
+#endif /* not a specific hardware */
 
 #include "MjpegClass.h"
 static MjpegClass mjpeg;
@@ -61,8 +81,9 @@ void setup()
 #endif
 
   // Init SD card
+  if (!SD.begin(SS, SPI, 80000000)) /* SPI bus mode */
   // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
-  if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
+  // if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: SD card mount failed!"));
     gfx->println(F("ERROR: SD card mount failed!"));
@@ -93,7 +114,8 @@ void setup()
       i2s_set_dac_mode(I2S_DAC_CHANNEL_RIGHT_EN);
       i2s_zero_dma_buffer((i2s_port_t)0);
 
-      File aFile = SD_MMC.open(AUDIO_FILENAME);
+      File aFile = SD.open(AUDIO_FILENAME);
+      // File aFile = SD_MMC.open(AUDIO_FILENAME);
       if (!aFile || aFile.isDirectory())
       {
         Serial.println(F("ERROR: Failed to open " AUDIO_FILENAME " file for reading!"));
@@ -101,7 +123,8 @@ void setup()
       }
       else
       {
-        File vFile = SD_MMC.open(MJPEG_FILENAME);
+        File vFile = SD.open(MJPEG_FILENAME);
+        // File vFile = SD_MMC.open(MJPEG_FILENAME);
         if (!vFile || vFile.isDirectory())
         {
           Serial.println(F("ERROR: Failed to open " MJPEG_FILENAME " file for reading"));
@@ -180,9 +203,9 @@ void setup()
               Serial.printf("Time used: %d ms\n", time_used);
               Serial.printf("Expected FPS: %d\n", FPS);
               Serial.printf("Actual FPS: %0.1f\n", fps);
-              Serial.printf("SDMMC read PCM: %d ms (%0.1f %%)\n", total_read_audio, 100.0 * total_read_audio / time_used);
+              Serial.printf("SD read PCM: %d ms (%0.1f %%)\n", total_read_audio, 100.0 * total_read_audio / time_used);
               Serial.printf("Play audio: %d ms (%0.1f %%)\n", total_play_audio, 100.0 * total_play_audio / time_used);
-              Serial.printf("SDMMC read MJPEG: %d ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
+              Serial.printf("SD read MJPEG: %d ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
               Serial.printf("Play video: %d ms (%0.1f %%)\n", total_play_video, 100.0 * total_play_video / time_used);
               Serial.printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
@@ -193,9 +216,9 @@ void setup()
               gfx->printf("Time used: %d ms\n", time_used);
               gfx->printf("Expected FPS: %d\n", FPS);
               gfx->printf("Actual FPS: %0.1f\n", fps);
-              gfx->printf("SDMMC read PCM: %d ms (%0.1f %%)\n", total_read_audio, 100.0 * total_read_audio / time_used);
+              gfx->printf("SD read PCM: %d ms (%0.1f %%)\n", total_read_audio, 100.0 * total_read_audio / time_used);
               gfx->printf("Play audio: %d ms (%0.1f %%)\n", total_play_audio, 100.0 * total_play_audio / time_used);
-              gfx->printf("SDMMC read MJPEG: %d ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
+              gfx->printf("SD read MJPEG: %d ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
               gfx->printf("Play video: %d ms (%0.1f %%)\n", total_play_video, 100.0 * total_play_video / time_used);
               gfx->printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 

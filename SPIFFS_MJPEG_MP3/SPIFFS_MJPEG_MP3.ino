@@ -19,6 +19,7 @@ AudioOutputI2S *out;
 
 #include <Arduino_ESP32SPI.h>
 #include <Arduino_Display.h>
+#define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32
 #define SS 4
@@ -34,17 +35,13 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, tr
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
 Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
-#define SCK 18
-#define MOSI 23
-#define MISO 19
-#define SS 0
-#define TFT_BL 22
-#define TFT_BRIGHTNESS 128
 // ST7789 Display
-// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
+// #define TFT_BL 22
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
+#define TFT_BL 22
+Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 #endif /* not a specific hardware */
 

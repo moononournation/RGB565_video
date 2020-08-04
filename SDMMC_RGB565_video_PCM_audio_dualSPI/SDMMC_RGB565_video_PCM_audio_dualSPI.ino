@@ -25,12 +25,13 @@
 
 #include <Arduino_ESP32SPI.h>
 #include <Arduino_Display.h>
-#define TFT_BL 22
 #define TFT_BRIGHTNESS 128
 // ST7789 Display
+// #define TFT_BL 22
 // Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
+#define TFT_BL 22
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 

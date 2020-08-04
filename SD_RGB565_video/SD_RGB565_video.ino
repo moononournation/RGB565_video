@@ -8,6 +8,7 @@
 
 #include <Arduino_HWSPI.h>
 #include <Arduino_Display.h>
+#define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32
 #define SS 4
@@ -28,7 +29,6 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, tr
 #define MISO 19
 #define SS 0
 #define TFT_BL 22
-#define TFT_BRIGHTNESS 128
 // ST7789 Display
 // Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);

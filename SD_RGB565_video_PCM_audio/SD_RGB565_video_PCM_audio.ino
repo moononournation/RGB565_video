@@ -11,6 +11,7 @@
 
 #include <Arduino_HWSPI.h>
 #include <Arduino_Display.h>
+#define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32
 #define SS 4
@@ -30,12 +31,12 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, tr
 #define MOSI 23
 #define MISO 19
 #define SS 0
-#define TFT_BL 22
-#define TFT_BRIGHTNESS 128
 // ST7789 Display
+// #define TFT_BL 22
 // Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
+#define TFT_BL 22
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 #endif /* not a specific hardware */
@@ -98,6 +99,7 @@ void setup()
       i2s_zero_dma_buffer((i2s_port_t)0);
 
       File aFile = SD.open(AUDIO_FILENAME);
+      // File aFile = SD_MMC.open(AUDIO_FILENAME);
       if (!aFile || aFile.isDirectory())
       {
         Serial.println(F("ERROR: Failed to open " AUDIO_FILENAME " file for reading!"));

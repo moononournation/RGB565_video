@@ -29,7 +29,7 @@
 #include <Arduino_Display.h>
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, TFT_SPIHOST);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, TFT_RST, 3 /* rotation */, true /* IPS */);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, TFT_RST, 3 /* rotation */);
+Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, TFT_RST, 1 /* rotation */);
 
 int next_frame = 0;
 int skipped_frames = 0;
@@ -57,6 +57,8 @@ void setup()
   SPIClass spi = SPIClass(SD_SPIHOST);
   spi.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, spi, 80000000))
+  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
+  // if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: Card Mount Failed!"));
     gfx->println(F("ERROR: Card Mount Failed!"));
@@ -88,6 +90,7 @@ void setup()
       i2s_zero_dma_buffer((i2s_port_t)0);
 
       File aFile = SD.open(AUDIO_FILENAME);
+      // File aFile = SD_MMC.open(AUDIO_FILENAME);
       if (!aFile || aFile.isDirectory())
       {
         Serial.println(F("ERROR: Failed to open " AUDIO_FILENAME " file for reading!"));
@@ -96,6 +99,7 @@ void setup()
       else
       {
         File vFile = SD.open(RGB565_FILENAME);
+        // File vFile = SD_MMC.open(RGB565_FILENAME);
         if (!vFile || vFile.isDirectory())
         {
           Serial.println(F("ERROR: Failed to open " RGB565_FILENAME " file for reading"));
