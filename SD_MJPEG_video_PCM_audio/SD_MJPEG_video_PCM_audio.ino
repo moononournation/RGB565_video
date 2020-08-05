@@ -2,6 +2,7 @@
 #define FPS 30
 #define MJPEG_FILENAME "/220_30fps.mjpeg"
 #define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
+// #define FPS 15
 // #define MJPEG_FILENAME "/320_15fps.mjpeg"
 // #define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
 #define READ_BUFFER_SIZE 2048
@@ -99,6 +100,7 @@ void setup()
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
         .dma_buf_count = 4,
+        // .dma_buf_count = 7,
         .dma_buf_len = 490,
         .use_apll = false,
     };
@@ -133,6 +135,7 @@ void setup()
         else
         {
           uint8_t *aBuf = (uint8_t *)malloc(2940);
+          // uint8_t *aBuf = (uint8_t *)malloc(5880);
           if (!aBuf)
           {
             Serial.println(F("aBuf malloc failed!"));
@@ -155,6 +158,7 @@ void setup()
               {
                 // Read audio
                 aFile.read(aBuf, 2940);
+                // aFile.read(aBuf, 5880);
                 total_read_audio += millis() - curr_ms;
                 curr_ms = millis();
 
@@ -162,6 +166,9 @@ void setup()
                 i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 980), 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1960), 980, 0);
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
                 total_play_audio += millis() - curr_ms;
                 curr_ms = millis();
 
@@ -193,7 +200,7 @@ void setup()
                 next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
               }
               int time_used = millis() - start_ms;
-              Serial.println(F("PCM audio RGB565 video end"));
+              Serial.println(F("PCM audio MJPEG video end"));
               vFile.close();
               aFile.close();
               int played_frames = next_frame - 1 - skipped_frames;
