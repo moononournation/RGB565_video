@@ -213,6 +213,8 @@ void setup()
   delay(60000);
   ledcDetachPin(TFT_BL);
 #endif
+  gfx->displayOff();
+  esp_deep_sleep_start();
 }
 
 void loop()
