@@ -14,7 +14,7 @@ Simple example for playing RGB565 raw video
 
 #### 44.1 kHz
 
-`ffmpeg -i input.mp4 -f u16be -acodec pcm_u16le -ar 44100 -ac 1 44100_u16le.pcm`
+`ffmpeg -i input.mp4 -f u16le -acodec pcm_u16le -ar 44100 -ac 1 44100_u16le.pcm`
 
 #### MP3
 
@@ -45,6 +45,10 @@ Simple example for playing RGB565 raw video
 #### 320x240@12fps
 
 `ffmpeg -i input.mp4 -vf "fps=12,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_12fps.mjpeg`
+
+#### 320x240@15fps
+
+`ffmpeg -i input.mp4 -vf "fps=15,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_15fps.mjpeg`
 
 #### 220x176@24fps
 
