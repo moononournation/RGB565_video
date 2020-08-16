@@ -81,9 +81,9 @@ void setup()
   gfx->fillScreen(BLACK);
 
 #ifdef TFT_BL
-    ledcAttachPin(TFT_BL, 1); // assign TFT_BL pin to channel 1
-    ledcSetup(1, 12000, 8);   // 12 kHz PWM, 8-bit resolution
-    ledcWrite(1, TFT_BRIGHTNESS);  // brightness 0 - 255
+  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
+  ledcSetup(1, 12000, 8);       // 12 kHz PWM, 8-bit resolution
+  ledcWrite(1, TFT_BRIGHTNESS); // brightness 0 - 255
 #endif
 
   // Init SPIFFS
@@ -137,9 +137,9 @@ void setup()
             total_decode_video += millis() - curr_ms;
 
             int remain_ms = next_frame_ms - millis();
-            total_remain += remain_ms;
             if (remain_ms > 0)
             {
+              total_remain += remain_ms;
               delay(remain_ms);
             }
           }
@@ -158,7 +158,7 @@ void setup()
         Serial.println(F("End audio video"));
         int played_frames = next_frame - 1 - skipped_frames;
         float fps = 1000.0 * played_frames / time_used;
-        Serial.printf("Played frame: %d\n", played_frames);
+        Serial.printf("Played frames: %d\n", played_frames);
         Serial.printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
         Serial.printf("Time used: %d ms\n", time_used);
         Serial.printf("Expected FPS: %d\n", FPS);
@@ -167,16 +167,47 @@ void setup()
         Serial.printf("Decode video: %d ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
         Serial.printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
+#define CHART_MARGIN 24
+#define LEGEND_A_COLOR 0xE0C3
+#define LEGEND_B_COLOR 0x33F7
+#define LEGEND_C_COLOR 0x4D69
+#define LEGEND_D_COLOR 0x9A74
+#define LEGEND_E_COLOR 0xFBE0
+#define LEGEND_F_COLOR 0xFFE6
+#define LEGEND_G_COLOR 0xA2A5
         gfx->setCursor(0, 0);
-        gfx->setTextColor(WHITE, BLACK);
-        gfx->printf("Played frame: %d\n", played_frames);
-        gfx->printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
-        gfx->printf("Time used: %d ms\n", time_used);
-        gfx->printf("Expected FPS: %d\n", FPS);
-        gfx->printf("Actual FPS: %0.1f\n", fps);
-        gfx->printf("SD MJPEG: %d ms (%0.1f %%)\n", total_sd_mjpeg, 100.0 * total_sd_mjpeg / time_used);
-        gfx->printf("Decode video: %d ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
-        gfx->printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
+        gfx->setTextColor(WHITE);
+        gfx->printf("Played Frames: %d\n", played_frames);
+        gfx->printf("Skipped: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
+        gfx->printf("Actual FPS: %0.1f\n\n", fps);
+        int16_t r1 = ((gfx->height() - CHART_MARGIN - CHART_MARGIN) / 2);
+        int16_t r2 = r1 / 2;
+        int16_t cx = gfx->width() - gfx->height() + CHART_MARGIN + CHART_MARGIN - 1 + r1;
+        int16_t cy = r1 + CHART_MARGIN;
+        float arc_start = 0;
+        float arc_end = 360.0 * total_sd_mjpeg / time_used / 2;
+        for (int i = arc_start + 1; i < arc_end; i += 2)
+        {
+          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
+        }
+        gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
+        gfx->setTextColor(LEGEND_A_COLOR);
+        gfx->printf("SD MJPEG:\n%0.1f %%\n", 100.0 * total_sd_mjpeg / time_used / 2);
+        arc_start = arc_end;
+        arc_end += 360.0 * total_decode_video / time_used / 2;
+        for (int i = arc_start + 1; i < arc_end; i += 2)
+        {
+          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_B_COLOR);
+        }
+        gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_B_COLOR);
+        gfx->setTextColor(LEGEND_B_COLOR);
+        gfx->printf("Decode MJPEG:\n%0.1f %%\n", 100.0 * total_decode_video / time_used / 2);
+        if (arc_end < 360.0)
+        {
+          arc_start = arc_end;
+          arc_end = 360.0;
+          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, DARKGREY);
+        }
       }
     }
   }
