@@ -82,7 +82,7 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 11,
+        .dma_buf_count = 12,
         .dma_buf_len = 630,
         .use_apll = false,
     };
@@ -128,6 +128,11 @@ void setup()
             curr_ms = millis();
             next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
             gfx->setAddrWindow((gfx->width() - VIDEO_WIDTH) / 2, (gfx->height() - VIDEO_HEIGHT) / 2, VIDEO_WIDTH, VIDEO_HEIGHT);
+
+            // prefetch first audio buffer
+            aFile.read(aBuf, 1260);
+            i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 1260, 0);
+
             while (vFile.available() && aFile.available())
             {
               // Read audio
@@ -183,7 +188,7 @@ void setup()
             aFile.close();
             int played_frames = next_frame - 1 - skipped_frames;
             float fps = 1000.0 * played_frames / time_used;
-            Serial.printf("Played frame: %d\n", played_frames);
+            Serial.printf("Played frames: %d\n", played_frames);
             Serial.printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
             Serial.printf("Time used: %d ms\n", time_used);
             Serial.printf("Expected FPS: %d\n", FPS);
@@ -194,18 +199,62 @@ void setup()
             Serial.printf("Play video: %d ms (%0.1f %%)\n", total_play_video, 100.0 * total_play_video / time_used);
             Serial.printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
+#define CHART_MARGIN 24
+#define LEGEND_A_COLOR 0xE0C3
+#define LEGEND_B_COLOR 0x33F7
+#define LEGEND_C_COLOR 0x4D69
+#define LEGEND_D_COLOR 0x9A74
+#define LEGEND_E_COLOR 0xFBE0
+#define LEGEND_F_COLOR 0xFFE6
+#define LEGEND_G_COLOR 0xA2A5
             gfx->setCursor(0, 0);
-            gfx->setTextColor(WHITE, BLACK);
-            gfx->printf("Played frame: %d\n", played_frames);
+            gfx->setTextColor(WHITE);
+            gfx->printf("Played frames: %d\n", played_frames);
             gfx->printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / played_frames);
-            gfx->printf("Time used: %d ms\n", time_used);
-            gfx->printf("Expected FPS: %d\n", FPS);
-            gfx->printf("Actual FPS: %0.1f\n", fps);
-            gfx->printf("SD read PCM: %d ms (%0.1f %%)\n", total_read_audio, 100.0 * total_read_audio / time_used);
-            gfx->printf("Play audio: %d ms (%0.1f %%)\n", total_play_audio, 100.0 * total_play_audio / time_used);
-            gfx->printf("SD read RGB565: %d ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
-            gfx->printf("Play video: %d ms (%0.1f %%)\n", total_play_video, 100.0 * total_play_video / time_used);
-            gfx->printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
+            gfx->printf("Actual FPS: %0.1f\n\n", fps);
+            int16_t r1 = ((gfx->height() - CHART_MARGIN - CHART_MARGIN) / 2);
+            int16_t r2 = r1 / 2;
+            int16_t cx = gfx->width() - gfx->height() + CHART_MARGIN + CHART_MARGIN - 1 + r1;
+            int16_t cy = r1 + CHART_MARGIN;
+            float arc_start = 0;
+            float arc_end = max(2.0, 360.0 * total_read_audio / time_used);
+            for (int i = arc_start + 1; i < arc_end; i += 2)
+            {
+              gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_D_COLOR);
+            }
+            gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_D_COLOR);
+            gfx->setTextColor(LEGEND_D_COLOR);
+            gfx->printf("Read PCM:\n%0.1f %%\n", 100.0 * total_read_audio / time_used);
+
+            arc_start = arc_end;
+            arc_end += max(2.0, 360.0 * total_play_audio / time_used);
+            for (int i = arc_start + 1; i < arc_end; i += 2)
+            {
+              gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_C_COLOR);
+            }
+            gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_C_COLOR);
+            gfx->setTextColor(LEGEND_C_COLOR);
+            gfx->printf("Play audio:\n%0.1f %%\n", 100.0 * total_play_audio / time_used);
+
+            arc_start = arc_end;
+            arc_end += max(2.0, 360.0 * total_read_video / time_used);
+            for (int i = arc_start + 1; i < arc_end; i += 2)
+            {
+              gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_B_COLOR);
+            }
+            gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_B_COLOR);
+            gfx->setTextColor(LEGEND_B_COLOR);
+            gfx->printf("Read RGB565:\n%0.1f %%\n", 100.0 * total_read_video / time_used);
+
+            arc_start = arc_end;
+            arc_end += max(2.0, 360.0 * total_play_video / time_used);
+            for (int i = arc_start + 1; i < arc_end; i += 2)
+            {
+              gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
+            }
+            gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
+            gfx->setTextColor(LEGEND_A_COLOR);
+            gfx->printf("Play video:\n%0.1f %%\n", 100.0 * total_play_video / time_used);
 
             i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
             // avoid unexpected output at audio pins

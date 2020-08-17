@@ -149,6 +149,7 @@ void setup()
             Serial.println(F("Skip frame"));
           }
 
+          curr_ms = millis();
           next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
         }
         Serial.println(F("MP3 audio MJPEG video end"));
@@ -163,8 +164,8 @@ void setup()
         Serial.printf("Time used: %d ms\n", time_used);
         Serial.printf("Expected FPS: %d\n", FPS);
         Serial.printf("Actual FPS: %0.1f\n", fps);
-        Serial.printf("SD MJPEG: %d ms (%0.1f %%)\n", total_sd_mjpeg, 100.0 * total_sd_mjpeg / time_used);
-        Serial.printf("Decode video: %d ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
+        Serial.printf("Read MJPEG: %d ms (%0.1f %%)\n", total_sd_mjpeg, 100.0 * total_sd_mjpeg / time_used);
+        Serial.printf("Play video: %d ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
         Serial.printf("Remain: %d ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
 #define CHART_MARGIN 24
@@ -184,30 +185,30 @@ void setup()
         int16_t r2 = r1 / 2;
         int16_t cx = gfx->width() - gfx->height() + CHART_MARGIN + CHART_MARGIN - 1 + r1;
         int16_t cy = r1 + CHART_MARGIN;
+
+        gfx->fillArc(cx, cy, r2 - 1, 0, 0.0, 360.0, LEGEND_C_COLOR);
+        gfx->setTextColor(LEGEND_C_COLOR);
+        gfx->printf("Play MP3:\n%0.1f %%\n", 100.0);
+
         float arc_start = 0;
-        float arc_end = 360.0 * total_sd_mjpeg / time_used / 2;
+        float arc_end = 360.0 * total_sd_mjpeg / time_used;
         for (int i = arc_start + 1; i < arc_end; i += 2)
         {
           gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
         }
         gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
         gfx->setTextColor(LEGEND_A_COLOR);
-        gfx->printf("SD MJPEG:\n%0.1f %%\n", 100.0 * total_sd_mjpeg / time_used / 2);
+        gfx->printf("Read MJPEG:\n%0.1f %%\n", 100.0 * total_sd_mjpeg / time_used);
+
         arc_start = arc_end;
-        arc_end += 360.0 * total_decode_video / time_used / 2;
+        arc_end += 360.0 * total_decode_video / time_used;
         for (int i = arc_start + 1; i < arc_end; i += 2)
         {
           gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_B_COLOR);
         }
         gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_B_COLOR);
         gfx->setTextColor(LEGEND_B_COLOR);
-        gfx->printf("Decode MJPEG:\n%0.1f %%\n", 100.0 * total_decode_video / time_used / 2);
-        if (arc_end < 360.0)
-        {
-          arc_start = arc_end;
-          arc_end = 360.0;
-          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, DARKGREY);
-        }
+        gfx->printf("Play MJPEG:\n%0.1f %%\n", 100.0 * total_decode_video / time_used);
       }
     }
   }

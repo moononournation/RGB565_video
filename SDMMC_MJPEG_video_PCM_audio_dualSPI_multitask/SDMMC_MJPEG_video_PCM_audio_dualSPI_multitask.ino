@@ -77,7 +77,7 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 4,
+        .dma_buf_count = 5,
         .dma_buf_len = 490,
         .use_apll = false,
     };
@@ -128,6 +128,11 @@ void setup()
               curr_ms = millis();
               mjpeg.setup(vFile, mjpeg_buf, gfx, true);
               next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+
+              // prefetch first audio buffer
+              aFile.read(aBuf, 980);
+              i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 980, 0);
+
               while (vFile.available() && aFile.available())
               {
                 // Read audio
@@ -210,7 +215,6 @@ void setup()
                 gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_D_COLOR);
               }
               gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_D_COLOR);
-
               gfx->setTextColor(LEGEND_D_COLOR);
               gfx->printf("Read PCM:\n%0.1f %%\n", 100.0 * total_read_audio / time_used);
 
@@ -238,18 +242,11 @@ void setup()
               arc_end += max(2.0, 360.0 * total_play_video / time_used);
               for (int i = arc_start + 1; i < arc_end; i += 2)
               {
-                gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
+                gfx->fillArc(cx, cy, r1, 0, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
               }
-              gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
+              gfx->fillArc(cx, cy, r1, 0, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
               gfx->setTextColor(LEGEND_A_COLOR);
               gfx->printf("Play video:\n%0.1f %%\n", 100.0 * total_play_video / time_used);
-
-              if (arc_end < 360.0)
-              {
-                arc_start = arc_end;
-                arc_end = 360.0;
-                gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, DARKGREY);
-              }
 
               i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
               // avoid unexpected output at audio pins
