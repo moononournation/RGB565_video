@@ -2,6 +2,11 @@
 
 Simple example for playing RGB565 raw video
 
+![Prototype](https://content.instructables.com/ORIG/FXF/C099/KDFYF9XB/FXFC099KDFYF9XB.jpg?crop=1.2%3A1&width=306)
+
+Please find more details at instructables:
+https://www.instructables.com/id/Play-Video-With-ESP32/
+
 ## Convert video for SPIFFS
 
 #### 220x124@12fps
