@@ -99,8 +99,8 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 5,
-        // .dma_buf_count = 8,
+        .dma_buf_count = 5, // 30 FPS
+        // .dma_buf_count = 9, // 15 FPS
         .dma_buf_len = 490,
         .use_apll = false,
     };
@@ -134,8 +134,8 @@ void setup()
         }
         else
         {
-          uint8_t *aBuf = (uint8_t *)malloc(2940);
-          // uint8_t *aBuf = (uint8_t *)malloc(5880);
+          uint8_t *aBuf = (uint8_t *)malloc(2940); // 30 FPS
+          // uint8_t *aBuf = (uint8_t *)malloc(5880); // 15 FPS
           if (!aBuf)
           {
             Serial.println(F("aBuf malloc failed!"));
@@ -162,8 +162,8 @@ void setup()
               while (vFile.available() && aFile.available())
               {
                 // Read audio
-                aFile.read(aBuf, 2940);
-                // aFile.read(aBuf, 5880);
+                aFile.read(aBuf, 2940); // 30 FPS
+                // aFile.read(aBuf, 5880); // 15 FPS
                 total_read_audio += millis() - curr_ms;
                 curr_ms = millis();
 
@@ -171,6 +171,7 @@ void setup()
                 i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 980), 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1960), 980, 0);
+                // below for 15 FPS only
                 // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
                 // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
                 // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
