@@ -1,10 +1,10 @@
 #define AUDIO_FILENAME "/44100_u16le.pcm"
-#define FPS 30
-#define MJPEG_FILENAME "/220_30fps.mjpeg"
-#define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
-// #define FPS 15
-// #define MJPEG_FILENAME "/320_15fps.mjpeg"
-// #define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
+// #define FPS 30
+// #define MJPEG_FILENAME "/220_30fps.mjpeg"
+// #define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
+#define FPS 15
+#define MJPEG_FILENAME "/320_15fps.mjpeg"
+#define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
 #define READ_BUFFER_SIZE 2048
 /*
  * Connect the SD card to the following pins:
@@ -29,13 +29,13 @@
 #include <Arduino_Display.h>
 #define TFT_BRIGHTNESS 128
 // ST7789 Display
-// #define TFT_BL 32
-// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-// Arduino_ST7789 *gfx = new Arduino_ST7789(bus, 33 /* RST */, 3 /* rotation */, true /* IPS */);
+ #define TFT_BL 32
+ Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+Arduino_ST7789 *gfx = new Arduino_ST7789(bus, 33 /* RST */, 3 /* rotation */, true /* IPS */);
 // ILI9225 Display
-#define TFT_BL 22
-Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
+//#define TFT_BL 22
+//Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+//Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
 
 #include "MjpegClass.h"
 static MjpegClass mjpeg;
@@ -64,8 +64,8 @@ void setup()
 #endif
 
   // Init SD card
-  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
-  if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
+  // if ((!SD_MMC.begin()) && (!SD_MMC.begin())) /* 4-bit SD bus mode */
+  if ((!SD_MMC.begin("/sdcard", true)) && (!SD_MMC.begin("/sdcard", true))) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: SD card mount failed!"));
     gfx->println(F("ERROR: SD card mount failed!"));
@@ -80,8 +80,8 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 5, // 30 FPS
-        // .dma_buf_count = 9, // 15 FPS
+        // .dma_buf_count = 5,
+        .dma_buf_count = 8,
         .dma_buf_len = 490,
         .use_apll = false,
     };
@@ -97,8 +97,7 @@ void setup()
       i2s_set_dac_mode(I2S_DAC_CHANNEL_RIGHT_EN);
       i2s_zero_dma_buffer((i2s_port_t)0);
 
-      File aFile = SD.open(AUDIO_FILENAME);
-      // File aFile = SD_MMC.open(AUDIO_FILENAME);
+      File aFile = SD_MMC.open(AUDIO_FILENAME);
       if (!aFile || aFile.isDirectory())
       {
         Serial.println(F("ERROR: Failed to open " AUDIO_FILENAME " file for reading!"));
@@ -114,8 +113,8 @@ void setup()
         }
         else
         {
-          uint8_t *aBuf = (uint8_t *)malloc(2940); // 30 FPS
-          // uint8_t *aBuf = (uint8_t *)malloc(5880); // 15 FPS
+          // uint8_t *aBuf = (uint8_t *)malloc(2940);
+          uint8_t *aBuf = (uint8_t *)malloc(5880);
           if (!aBuf)
           {
             Serial.println(F("aBuf malloc failed!"));
@@ -142,8 +141,8 @@ void setup()
               while (vFile.available() && aFile.available())
               {
                 // Read audio
-                aFile.read(aBuf, 2940); // 30 FPS
-                // aFile.read(aBuf, 5880); // 15 FPS
+                // aFile.read(aBuf, 2940);
+                aFile.read(aBuf, 5880);
                 total_read_audio += millis() - curr_ms;
                 curr_ms = millis();
 
@@ -151,10 +150,10 @@ void setup()
                 i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 980), 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1960), 980, 0);
-                // below for 15 FPS only
-                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
-                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
-                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
+                // for 15 FPS
+                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
+                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
+                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
                 total_play_audio += millis() - curr_ms;
                 curr_ms = millis();
 

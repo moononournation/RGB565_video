@@ -92,8 +92,8 @@ void setup()
 #endif
 
   // Init SD card
-  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
-  if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
+  // if ((!SD_MMC.begin()) && (!SD_MMC.begin())) /* 4-bit SD bus mode */
+  if ((!SD_MMC.begin("/sdcard", true)) && (!SD_MMC.begin("/sdcard", true))) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: SD card mount failed!"));
     gfx->println(F("ERROR: SD card mount failed!"));

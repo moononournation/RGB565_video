@@ -57,8 +57,8 @@ void setup()
   SPIClass spi = SPIClass(SD_SPIHOST);
   spi.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS, spi, 80000000))
-  // if (!SD_MMC.begin()) /* 4-bit SD bus mode */
-  // if (!SD_MMC.begin("/sdcard", true)) /* 1-bit SD bus mode */
+  // if ((!SD_MMC.begin()) && (!SD_MMC.begin())) /* 4-bit SD bus mode */
+  // if ((!SD_MMC.begin("/sdcard", true)) && (!SD_MMC.begin("/sdcard", true))) /* 1-bit SD bus mode */
   {
     Serial.println(F("ERROR: Card Mount Failed!"));
     gfx->println(F("ERROR: Card Mount Failed!"));
