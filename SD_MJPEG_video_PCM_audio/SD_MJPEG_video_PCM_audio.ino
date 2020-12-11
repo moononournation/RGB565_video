@@ -26,8 +26,7 @@
 #include <SD_MMC.h>
 #include <driver/i2s.h>
 
-#include <Arduino_HWSPI.h>
-#include <Arduino_Display.h>
+#include <Arduino_GFX_Library.h>
 #define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32

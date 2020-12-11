@@ -17,8 +17,7 @@ AudioGeneratorMP3 *mp3;
 AudioFileSourceSPIFFS *file;
 AudioOutputI2S *out;
 
-#include <Arduino_ESP32SPI.h>
-#include <Arduino_Display.h>
+#include <Arduino_GFX_Library.h>
 #define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32

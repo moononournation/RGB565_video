@@ -25,8 +25,7 @@
 #include <SD_MMC.h>
 #include <driver/i2s.h>
 
-#include <Arduino_ESP32SPI.h>
-#include <Arduino_Display.h>
+#include <Arduino_GFX_Library.h>
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, TFT_SPIHOST);
 // Arduino_ST7789 *gfx = new Arduino_ST7789(bus, TFT_RST, 3 /* rotation */, true /* IPS */);
 Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, TFT_RST, 1 /* rotation */);

@@ -20,8 +20,7 @@
 #include <SD_MMC.h>
 #include <driver/i2s.h>
 
-#include <Arduino_ESP32SPI_DMA.h>
-#include <Arduino_Display.h>
+#include <Arduino_GFX_Library.h>
 #define TFT_BRIGHTNESS 128
 // ST7789 Display
 // #define TFT_BL 22

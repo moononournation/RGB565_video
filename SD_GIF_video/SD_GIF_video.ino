@@ -3,8 +3,7 @@
 #include <SD.h>
 #include <SD_MMC.h>
 
-#include <Arduino_ESP32SPI_DMA.h>
-#include <Arduino_Display.h>
+#include <Arduino_GFX_Library.h>
 #define TFT_BRIGHTNESS 128
 #if defined(ARDUINO_M5Stack_Core_ESP32) || defined(ARDUINO_M5STACK_FIRE)
 #define TFT_BL 32
