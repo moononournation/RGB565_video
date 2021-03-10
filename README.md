@@ -63,6 +63,10 @@ https://www.instructables.com/id/Play-Video-With-ESP32/
 
 `ffmpeg -i input.mp4 -vf "fps=30,scale=-1:176:flags=lanczos,crop=220:in_h:(in_w-220)/2:0" -q:v 9 220_30fps.mjpeg`
 
+#### 208x176@30fps
+
+`ffmpeg -i input.mp4 -vf "fps=30,scale=-1:176:flags=lanczos,crop=208:in_h:(in_w-208)/2:0" -q:v 9 208_30fps.mjpeg`
+
 ## Sample Video Source
 
 [https://youtu.be/upjTmKXDnFU](https://youtu.be/upjTmKXDnFU){:target="_blank"}
