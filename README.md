@@ -17,13 +17,21 @@ https://www.instructables.com/id/Play-Video-With-ESP32/
 
 ### audio
 
-#### 44.1 kHz
+#### PCM
 
+##### 44 kHz
 `ffmpeg -i input.mp4 -f u16le -acodec pcm_u16le -ar 44100 -ac 1 44100_u16le.pcm`
 
 #### MP3
 
+##### 44 kHz
 `ffmpeg -i input.mp4 -ar 44100 -ac 1 -q:a 9 44100.mp3`
+
+##### 22 kHz
+`ffmpeg -i input.mp4 -ar 22050 -ac 1 -q:a 9 22050.mp3`
+
+##### 16 kHz
+`ffmpeg -i input.mp4 -ar 16000 -ac 1 -q:a 9 16000.mp3`
 
 ### video
 
@@ -54,6 +62,10 @@ https://www.instructables.com/id/Play-Video-With-ESP32/
 #### 320x240@15fps
 
 `ffmpeg -i input.mp4 -vf "fps=15,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_15fps.mjpeg`
+
+#### 320x240@30fps
+
+`ffmpeg -i input.mp4 -vf "fps=30,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_30fps.mjpeg`
 
 #### 220x176@24fps
 
