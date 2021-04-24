@@ -2,7 +2,7 @@
 #define _MJPEGCLASS_H_
 
 #define READ_BUFFER_SIZE 1024
-#define MAXOUTPUTSIZE 16
+#define MAXOUTPUTSIZE 8
 #define NUMBER_OF_DRAW_BUFFER 4
 
 #include <freertos/FreeRTOS.h>
