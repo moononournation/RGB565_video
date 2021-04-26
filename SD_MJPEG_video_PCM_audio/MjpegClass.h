@@ -23,10 +23,16 @@ public:
     _tft_width = gfx->width();
     _tft_height = gfx->height();
 
-    _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    if (!_read_buf)
+    {
+      _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    }
     for (int i = 0; i < 2; ++i)
     {
-      _out_bufs[i] = (uint8_t *)heap_caps_malloc(_tft_width * 48 * 2, MALLOC_CAP_DMA);
+      if (!_out_bufs[i])
+      {
+        _out_bufs[i] = (uint8_t *)heap_caps_malloc(_tft_width * 48 * 2, MALLOC_CAP_DMA);
+      }
     }
 
     _out_buf = _out_bufs[0];

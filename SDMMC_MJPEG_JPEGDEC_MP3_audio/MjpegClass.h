@@ -77,7 +77,10 @@ public:
     _enableMultiTask = enableMultiTask;
     _useBigEndian = useBigEndian;
 
-    _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    if (!_read_buf)
+    {
+      _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    }
 
     if (_enableMultiTask)
     {

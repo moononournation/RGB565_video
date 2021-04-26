@@ -49,7 +49,10 @@ static void drawTask(void *arg)
   paramDrawTask *p = (paramDrawTask *)arg;
   for (int i = 0; i < NUMBER_OF_DRAW_BUFFER; i++)
   {
-    jpegdraws[i].pPixels = (uint16_t *)heap_caps_malloc(MAXOUTPUTSIZE * 16 * 16 * 2, MALLOC_CAP_DMA);
+    if (!jpegdraws[i].pPixels)
+    {
+      jpegdraws[i].pPixels = (uint16_t *)heap_caps_malloc(MAXOUTPUTSIZE * 16 * 16 * 2, MALLOC_CAP_DMA);
+    }
     Serial.printf("#%d draw buffer allocated\n", i);
   }
   JPEGDRAW *pDraw;
@@ -77,7 +80,10 @@ public:
     _enableMultiTask = enableMultiTask;
     _useBigEndian = useBigEndian;
 
-    _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    if (!_read_buf)
+    {
+      _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
+    }
 
     if (_enableMultiTask)
     {
