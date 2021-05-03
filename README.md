@@ -81,5 +81,4 @@ https://www.instructables.com/id/Play-Video-With-ESP32/
 
 ## Sample Video Source
 
-[https://youtu.be/upjTmKXDnFU](https://youtu.be/upjTmKXDnFU){:target="_blank"}
-[https://steamcommunity.com/sharedfiles/filedetails/?id=593882316](https://steamcommunity.com/sharedfiles/filedetails/?id=593882316){:target="_blank"}
+[https://youtu.be/upjTmKXDnFU](https://youtu.be/upjTmKXDnFU)
