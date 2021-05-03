@@ -7,7 +7,7 @@
 #define MP3_FILENAME "/22050.mp3"
 #define FPS 30
 #define MJPEG_FILENAME "/320_30fps.mjpeg"
-#define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
+#define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 14)
 /*
  * Connect the SD card to the following pins:
  *
@@ -50,39 +50,18 @@ static MjpegClass mjpeg;
 /* variables */
 static int next_frame = 0;
 static int skipped_frames = 0;
-static unsigned long total_play_audio = 0;
-static unsigned long total_read_video = 0;
-static unsigned long total_decode_video = 0;
-static unsigned long total_show_video = 0;
-static unsigned long total_remain = 0;
+static unsigned long total_play_audio_ms = 0;
+static unsigned long total_read_video_ms = 0;
+static unsigned long total_show_video_ms = 0;
 static unsigned long start_ms, curr_ms, next_frame_ms;
-
-static void playMp3Task(void *arg)
-{
-  AudioGeneratorMP3 *mp3 = (AudioGeneratorMP3 *)arg;
-  while (true)
-  {
-    if (mp3->isRunning())
-    {
-      unsigned long start = millis();
-      if (!mp3->loop())
-      {
-        mp3->stop();
-        vTaskDelete(NULL);
-      }
-      total_play_audio += millis() - start;
-    }
-    vTaskDelay(100);
-  }
-}
 
 // pixel drawing callback
 static int drawMCU(JPEGDRAW *pDraw)
 {
-  // Serial.printf("Draw pos = %d,%d. size = %d x %d\n", pDraw->x, pDraw->y, pDraw->iWidth, pDraw->iHeight);
+  // Serial.printf("Draw pos = (%d, %d), size = %d x %d\n", pDraw->x, pDraw->y, pDraw->iWidth, pDraw->iHeight);
   unsigned long s = millis();
   gfx->draw16bitBeRGBBitmap(pDraw->x, pDraw->y, pDraw->pPixels, pDraw->iWidth, pDraw->iHeight);
-  total_show_video += millis() - s;
+  total_show_video_ms += millis() - s;
   return 1;
 } /* drawMCU() */
 
@@ -126,67 +105,71 @@ void setup()
     }
     else
     {
-      uint8_t *mjpeg_buf = (uint8_t *)malloc(MJPEG_BUFFER_SIZE);
-      if (!mjpeg_buf)
-      {
-        Serial.println(F("mjpeg_buf malloc failed!"));
-      }
-      else
-      {
-        Serial.println(F("PCM audio MJPEG video start"));
+      Serial.println(F("PCM audio MJPEG video start"));
 
-        mjpeg.setup(&vFile, mjpeg_buf, drawMCU, true, true);
-        mp3->begin(aFile, out);
-        xTaskCreatePinnedToCore(&playMp3Task, "playMp3Task", 2048, mp3, 1, NULL, 0);
-        next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+      // init Video
+      mjpeg.setup(&vFile, MJPEG_BUFFER_SIZE, drawMCU,
+                  true /* enableDecodeMultiTask */,
+                  true /* enableDrawMultiTask */,
+                  true /* useBigEndian */);
 
-        start_ms = millis();
-        curr_ms = millis();
-        while (vFile.available())
+      // init audio
+      mp3->begin(aFile, out);
+
+      start_ms = millis();
+      curr_ms = start_ms;
+      next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+      while (vFile.available())
+      {
+        // Read video
+        mjpeg.readMjpegBuf();
+        total_read_video_ms += millis() - curr_ms;
+
+        if (millis() < next_frame_ms) // check show frame or skip frame
         {
-          // Read video
-          mjpeg.readMjpegBuf();
-          total_read_video += millis() - curr_ms;
-          curr_ms = millis();
-
-          if (millis() < next_frame_ms) // check show frame or skip frame
-          {
-            // Play video
-            mjpeg.drawJpg();
-            total_decode_video += millis() - curr_ms;
-
-            int remain_ms = next_frame_ms - millis();
-            if (remain_ms > 0)
-            {
-              total_remain += remain_ms;
-              delay(remain_ms);
-            }
-          }
-          else
-          {
-            ++skipped_frames;
-            Serial.println(F("Skip frame"));
-          }
-
-          curr_ms = millis();
-          next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+          // Play video
+          mjpeg.drawJpg();
         }
-        int time_used = millis() - start_ms;
-        int total_frames = next_frame - 1;
-        Serial.println(F("PCM audio MJPEG video end"));
-        vFile.close();
-        int played_frames = total_frames - skipped_frames;
-        float fps = 1000.0 * played_frames / time_used;
-        Serial.printf("Played frames: %d\n", played_frames);
-        Serial.printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / total_frames);
-        Serial.printf("Time used: %d ms\n", time_used);
-        Serial.printf("Expected FPS: %d\n", FPS);
-        Serial.printf("Actual FPS: %0.1f\n", fps);
-        Serial.printf("Play MP3: %lu ms (%0.1f %%)\n", total_play_audio, 100.0 * total_play_audio / time_used);
-        Serial.printf("SDMMC read MJPEG: %lu ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
-        Serial.printf("Decode video: %lu ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
-        Serial.printf("Show video: %lu ms (%0.1f %%)\n", total_show_video, 100.0 * total_show_video / time_used);
-        Serial.printf("Remain: %lu ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
+        else
+        {
+          ++skipped_frames;
+          Serial.println(F("Skip frame"));
+        }
+        curr_ms = millis();
+
+        // // Play audio
+        if ((mp3->isRunning()) && (!mp3->loop()))
+        {
+          mp3->stop();
+        }
+        total_play_audio_ms += millis() - curr_ms;
+
+        while (millis() < next_frame_ms)
+        {
+          vTaskDelay(1);
+        }
+
+        curr_ms = millis();
+        next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
+      }
+      int time_used = millis() - start_ms;
+      int total_frames = next_frame - 1;
+      Serial.println(F("PCM audio MJPEG video end"));
+      vFile.close();
+      int played_frames = total_frames - skipped_frames;
+      float fps = 1000.0 * played_frames / time_used;
+      Serial.printf("Played frames: %d\n", played_frames);
+      Serial.printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / total_frames);
+      Serial.printf("Time used: %d ms\n", time_used);
+      Serial.printf("Expected FPS: %d\n", FPS);
+      Serial.printf("Actual FPS: %0.1f\n", fps);
+      Serial.printf("Play MP3: %lu ms (%0.1f %%)\n", total_play_audio_ms, 100.0 * total_play_audio_ms / time_used);
+      Serial.printf("SDMMC read MJPEG: %lu ms (%0.1f %%)\n", total_read_video_ms, 100.0 * total_read_video_ms / time_used);
+      Serial.printf("Decode video: %lu ms (%0.1f %%)\n", total_decode_video_ms, 100.0 * total_decode_video_ms / time_used);
+      Serial.printf("Show video: %lu ms (%0.1f %%)\n", total_show_video_ms, 100.0 * total_show_video_ms / time_used);
+
+      // wait last frame finished
+      delay(200);
 
 #define CHART_MARGIN 24
 #define LEGEND_A_COLOR 0xE0C3
@@ -196,55 +179,55 @@ void setup()
 #define LEGEND_E_COLOR 0xFBE0
 #define LEGEND_F_COLOR 0xFFE6
 #define LEGEND_G_COLOR 0xA2A5
-        gfx->setCursor(0, 0);
-        gfx->setTextColor(WHITE);
-        gfx->printf("Played frames: %d\n", played_frames);
-        gfx->printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / total_frames);
-        gfx->printf("Actual FPS: %0.1f\n\n", fps);
-        int16_t r1 = ((gfx->height() - CHART_MARGIN - CHART_MARGIN) / 2);
-        int16_t r2 = r1 / 2;
-        int16_t cx = gfx->width() - gfx->height() + CHART_MARGIN + CHART_MARGIN - 1 + r1;
-        int16_t cy = r1 + CHART_MARGIN;
-        float arc_start = 0;
-        float arc_end = max(2.0, 360.0 * total_read_video / time_used);
-        for (int i = arc_start + 1; i < arc_end; i += 2)
-        {
-          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_C_COLOR);
-        }
-        gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_C_COLOR);
-        gfx->setTextColor(LEGEND_C_COLOR);
-        gfx->printf("Read MJPEG:\n%0.1f %%\n", 100.0 * total_read_video / time_used);
+      gfx->setCursor(0, 0);
+      gfx->setTextColor(WHITE);
+      gfx->printf("Played frames: %d\n", played_frames);
+      gfx->printf("Skipped frames: %d (%0.1f %%)\n", skipped_frames, 100.0 * skipped_frames / total_frames);
+      gfx->printf("Actual FPS: %0.1f\n\n", fps);
+      int16_t r1 = ((gfx->height() - CHART_MARGIN - CHART_MARGIN) / 2);
+      int16_t r2 = r1 / 2;
+      int16_t cx = gfx->width() - gfx->height() + CHART_MARGIN + CHART_MARGIN - 1 + r1;
+      int16_t cy = r1 + CHART_MARGIN;
 
-        arc_start = arc_end;
-        arc_end += max(2.0, 360.0 * total_decode_video / time_used);
-        for (int i = arc_start + 1; i < arc_end; i += 2)
-        {
-          gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, i - 90.0, LEGEND_B_COLOR);
-        }
-        gfx->fillArc(cx, cy, r1, r2, arc_start - 90.0, arc_end - 90.0, LEGEND_B_COLOR);
-        gfx->setTextColor(LEGEND_B_COLOR);
-        gfx->printf("Decode video:\n%0.1f %%\n", 100.0 * total_decode_video / time_used);
-
-        arc_start = arc_end;
-        arc_end += max(2.0, 360.0 * total_play_audio / time_used);
-        for (int i = arc_start + 1; i < arc_end; i += 2)
-        {
-          gfx->fillArc(cx, cy, r2, 0, arc_start - 90.0, i - 90.0, LEGEND_D_COLOR);
-        }
-        gfx->fillArc(cx, cy, r2, 0, arc_start - 90.0, arc_end - 90.0, LEGEND_D_COLOR);
-        gfx->setTextColor(LEGEND_D_COLOR);
-        gfx->printf("Play MP3:\n%0.1f %%\n", 100.0 * total_play_audio / time_used);
-
-        arc_start = arc_end;
-        arc_end += max(2.0, 360.0 * total_show_video / time_used);
-        for (int i = arc_start + 1; i < arc_end; i += 2)
-        {
-          gfx->fillArc(cx, cy, r2, 0, arc_start - 90.0, i - 90.0, LEGEND_A_COLOR);
-        }
-        gfx->fillArc(cx, cy, r2, 0, arc_start - 90.0, arc_end - 90.0, LEGEND_A_COLOR);
-        gfx->setTextColor(LEGEND_A_COLOR);
-        gfx->printf("Play video:\n%0.1f %%\n", 100.0 * total_show_video / time_used);
+      float arc_start1 = 0;
+      float arc_end1 = arc_start1 + max(2.0, 360.0 * total_play_audio_ms / time_used);
+      for (int i = arc_start1 + 1; i < arc_end1; i += 2)
+      {
+        gfx->fillArc(cx, cy, r1, r2, arc_start1 - 90.0, i - 90.0, LEGEND_A_COLOR);
       }
+      gfx->fillArc(cx, cy, r1, r2, arc_start1 - 90.0, arc_end1 - 90.0, LEGEND_A_COLOR);
+      gfx->setTextColor(LEGEND_A_COLOR);
+      gfx->printf("Play MP3:\n%0.1f %%\n", 100.0 * total_play_audio_ms / time_used);
+
+      float arc_start2 = arc_end1;
+      float arc_end2 = arc_start2 + max(2.0, 360.0 * total_read_video_ms / time_used);
+      for (int i = arc_start2 + 1; i < arc_end2; i += 2)
+      {
+        gfx->fillArc(cx, cy, r1, r2, arc_start2 - 90.0, i - 90.0, LEGEND_B_COLOR);
+      }
+      gfx->fillArc(cx, cy, r1, r2, arc_start2 - 90.0, arc_end2 - 90.0, LEGEND_B_COLOR);
+      gfx->setTextColor(LEGEND_B_COLOR);
+      gfx->printf("Read MJPEG:\n%0.1f %%\n", 100.0 * total_read_video_ms / time_used);
+
+      float arc_start3 = arc_end2;
+      float arc_end3 = arc_start3 + max(2.0, 360.0 * total_decode_video_ms / time_used);
+      for (int i = arc_start3 + 1; i < arc_end3; i += 2)
+      {
+        gfx->fillArc(cx, cy, r2, 0, arc_start3 - 90.0, i - 90.0, LEGEND_C_COLOR);
+      }
+      gfx->fillArc(cx, cy, r2, 0, arc_start3 - 90.0, arc_end3 - 90.0, LEGEND_C_COLOR);
+      gfx->setTextColor(LEGEND_C_COLOR);
+      gfx->printf("Decode video:\n%0.1f %%\n", 100.0 * total_decode_video_ms / time_used);
+
+      float arc_start4 = arc_end2;
+      float arc_end4 = arc_start4 + max(2.0, 360.0 * total_show_video_ms / time_used);
+      for (int i = arc_start4 + 1; i < arc_end4; i += 2)
+      {
+        gfx->fillArc(cx, cy, r1, r2, arc_start4 - 90.0, i - 90.0, LEGEND_D_COLOR);
+      }
+      gfx->fillArc(cx, cy, r1, r2, arc_start4 - 90.0, arc_end4 - 90.0, LEGEND_D_COLOR);
+      gfx->setTextColor(LEGEND_D_COLOR);
+      gfx->printf("Play video:\n%0.1f %%\n", 100.0 * total_show_video_ms / time_used);
     }
   }
 #ifdef TFT_BL

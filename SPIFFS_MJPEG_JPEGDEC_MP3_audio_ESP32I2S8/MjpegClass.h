@@ -2,7 +2,8 @@
 #define _MJPEGCLASS_H_
 
 #define READ_BUFFER_SIZE 1024
-#define MAXOUTPUTSIZE 8
+#define MAXOUTPUTSIZE (MAX_BUFFERED_PIXELS / 16 / 16)
+#define NUMBER_OF_DECODE_BUFFER 7
 #define NUMBER_OF_DRAW_BUFFER 4
 
 #include <freertos/FreeRTOS.h>
@@ -16,81 +17,180 @@
 
 typedef struct
 {
+  int32_t size;
+  uint8_t *buf;
+} mjpegBuf;
+
+typedef struct
+{
+  xQueueHandle xqh;
   JPEG_DRAW_CALLBACK *drawFunc;
 } paramDrawTask;
 
-static xQueueHandle xqh = 0;
+typedef struct
+{
+  xQueueHandle xqh;
+  mjpegBuf *mBuf;
+  JPEG_DRAW_CALLBACK *drawFunc;
+} paramDecodeTask;
+
 static JPEGDRAW jpegdraws[NUMBER_OF_DRAW_BUFFER];
-static int queue_cnt = 0;
-static int draw_cnt = 0;
+static int _decode_queue_cnt = 0;
+static int _decode_cnt = 0;
+static int _draw_queue_cnt = 0;
+static int _draw_cnt = 0;
+static JPEGDEC _jpegDec;
+static xQueueHandle _xqh;
+static bool _enableDrawMultiTask;
+static bool _useBigEndian;
+static unsigned long total_decode_video_ms = 0;
 
 static int queueDrawMCU(JPEGDRAW *pDraw)
 {
-  ++queue_cnt;
-  while ((queue_cnt - draw_cnt) > NUMBER_OF_DRAW_BUFFER)
-  {
-    delay(1);
-  }
-
   int len = pDraw->iWidth * pDraw->iHeight * 2;
-  JPEGDRAW *j = &jpegdraws[queue_cnt % NUMBER_OF_DRAW_BUFFER];
+  JPEGDRAW *j = &jpegdraws[_draw_queue_cnt % NUMBER_OF_DRAW_BUFFER];
   j->x = pDraw->x;
   j->y = pDraw->y;
   j->iWidth = pDraw->iWidth;
   j->iHeight = pDraw->iHeight;
   memcpy(j->pPixels, pDraw->pPixels, len);
 
-  xQueueSend(xqh, &j, 0);
+  // printf("queueDrawMCU start.\n");
+  ++_draw_queue_cnt;
+  if ((_draw_queue_cnt - _draw_cnt) > NUMBER_OF_DRAW_BUFFER)
+  {
+    printf("draw queue overflow!\n");
+    while ((_draw_queue_cnt - _draw_cnt) > NUMBER_OF_DRAW_BUFFER)
+    {
+      vTaskDelay(1);
+    }
+  }
+
+  xQueueSend(_xqh, &j, 0);
+  // printf("queueDrawMCU end.\n");
+
   return 1;
+}
+
+static void decodeTask(void *arg)
+{
+  paramDecodeTask *p = (paramDecodeTask *)arg;
+  mjpegBuf *mBuf;
+  printf("decodeTask start.\n");
+  while (xQueueReceive(p->xqh, &mBuf, portMAX_DELAY))
+  {
+    // printf("mBuf->size: %d\n", mBuf->size);
+    // printf("mBuf->buf start: %X %X, end: %X, %X.\n", mBuf->buf[0], mBuf->buf[1], mBuf->buf[mBuf->size - 2], mBuf->buf[mBuf->size - 1]);
+    unsigned long s = millis();
+
+    _jpegDec.openRAM(mBuf->buf, mBuf->size, p->drawFunc);
+
+    // _jpegDec.setMaxOutputSize(MAXOUTPUTSIZE);
+    if (_useBigEndian)
+    {
+      _jpegDec.setPixelType(RGB565_BIG_ENDIAN);
+    }
+    _jpegDec.decode(0, 0, 0);
+    _jpegDec.close();
+
+    total_decode_video_ms += millis() - s;
+
+    ++_decode_cnt;
+  }
+  vQueueDelete(p->xqh);
+  printf("decodeTask end.\n");
+  vTaskDelete(NULL);
 }
 
 static void drawTask(void *arg)
 {
   paramDrawTask *p = (paramDrawTask *)arg;
-  for (int i = 0; i < NUMBER_OF_DRAW_BUFFER; i++)
-  {
-    if (!jpegdraws[i].pPixels)
-    {
-      jpegdraws[i].pPixels = (uint16_t *)heap_caps_malloc(MAXOUTPUTSIZE * 16 * 16 * 2, MALLOC_CAP_DMA);
-    }
-    Serial.printf("#%d draw buffer allocated\n", i);
-  }
   JPEGDRAW *pDraw;
-  Serial.println("drawTask start");
-  while (xQueueReceive(xqh, &pDraw, portMAX_DELAY))
+  printf("drawTask start.\n");
+  while (xQueueReceive(p->xqh, &pDraw, portMAX_DELAY))
   {
-    // Serial.printf("task work: x: %d, y: %d, iWidth: %d, iHeight: %d\r\n", pDraw->x, pDraw->y, pDraw->iWidth, pDraw->iHeight);
+    // printf("drawTask work start: x: %d, y: %d, iWidth: %d, iHeight: %d.\n", pDraw->x, pDraw->y, pDraw->iWidth, pDraw->iHeight);
     p->drawFunc(pDraw);
-    // Serial.println("task work done");
-    ++draw_cnt;
+    // printf("drawTask work end.\n");
+    ++_draw_cnt;
   }
-  vQueueDelete(xqh);
-  Serial.println("drawTask end");
+  vQueueDelete(p->xqh);
+  printf("drawTask end.\n");
   vTaskDelete(NULL);
 }
 
 class MjpegClass
 {
 public:
-  bool setup(Stream *input, uint8_t *mjpeg_buf, JPEG_DRAW_CALLBACK *pfnDraw, bool enableMultiTask, bool useBigEndian)
+  bool setup(Stream *input, int32_t mjpegBufufSize, JPEG_DRAW_CALLBACK *pfnDraw,
+             bool enableDecodeMultiTask, bool enableDrawMultiTask, bool useBigEndian)
   {
     _input = input;
-    _mjpeg_buf = mjpeg_buf;
     _pfnDraw = pfnDraw;
-    _enableMultiTask = enableMultiTask;
+    _enableDecodeMultiTask = enableDecodeMultiTask;
+    _enableDrawMultiTask = enableDrawMultiTask;
     _useBigEndian = useBigEndian;
+
+    for (int i = 0; i < NUMBER_OF_DECODE_BUFFER; ++i)
+    {
+      _mjpegBufs[i].buf = (uint8_t *)malloc(mjpegBufufSize);
+      if (_mjpegBufs[i].buf)
+      {
+        printf("#%d decode buffer allocated.\n", i);
+      }
+    }
+    _mjpeg_buf = _mjpegBufs[_mBufIdx].buf;
 
     if (!_read_buf)
     {
       _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
     }
-
-    if (_enableMultiTask)
+    if (_read_buf)
     {
-      TaskHandle_t task;
-      _p.drawFunc = pfnDraw;
-      xqh = xQueueCreate(NUMBER_OF_DRAW_BUFFER, sizeof(JPEGDRAW));
-      xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_p, 1, &task, 0);
+      printf("Read buffer allocated.\n");
+    }
+
+    if (_enableDrawMultiTask)
+    {
+      if (_enableDecodeMultiTask)
+      {
+        _xqh = xQueueCreate(NUMBER_OF_DRAW_BUFFER, sizeof(JPEGDRAW));
+        _pDrawTask.xqh = _xqh;
+        _pDrawTask.drawFunc = pfnDraw;
+        _pDecodeTask.xqh = xQueueCreate(NUMBER_OF_DECODE_BUFFER, sizeof(mjpegBuf));
+        _pDecodeTask.drawFunc = queueDrawMCU;
+        xTaskCreatePinnedToCore(decodeTask, "decodeTask", 1600, &_pDecodeTask, 2, &_decodeTask, 0);
+        xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_pDrawTask, 2, &_drawTask, 1);
+      }
+      else
+      {
+        _xqh = xQueueCreate(NUMBER_OF_DRAW_BUFFER, sizeof(JPEGDRAW));
+        _pDrawTask.xqh = _xqh;
+        _pDrawTask.drawFunc = pfnDraw;
+        xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_pDrawTask, 2, &_drawTask, 0);
+      }
+    }
+    else
+    {
+      if (_enableDecodeMultiTask)
+      {
+        _pDecodeTask.xqh = xQueueCreate(NUMBER_OF_DECODE_BUFFER, sizeof(mjpegBuf));
+        _pDrawTask.drawFunc = pfnDraw;
+        xTaskCreatePinnedToCore(decodeTask, "decodeTask", 1600, &_pDecodeTask, 2, &_decodeTask, 0);
+        xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_pDrawTask, 2, &_drawTask, 1);
+      }
+    }
+
+    for (int i = 0; i < NUMBER_OF_DRAW_BUFFER; i++)
+    {
+      if (!jpegdraws[i].pPixels)
+      {
+        jpegdraws[i].pPixels = (uint16_t *)heap_caps_malloc(MAXOUTPUTSIZE * 16 * 16 * 2, MALLOC_CAP_DMA);
+      }
+      if (jpegdraws[i].pPixels)
+      {
+        printf("#%d draw buffer allocated.\n", i);
+      }
     }
 
     return true;
@@ -113,7 +213,7 @@ public:
       {
         if ((_read_buf[i] == 0xFF) && (_read_buf[i + 1] == 0xD8)) // JPEG header
         {
-          // Serial.printf("Found FFD8 at: %d.\n", i);
+          // printf("Found FFD8 at: %d.\n", i);
           found_FFD8 = true;
         }
         ++i;
@@ -137,7 +237,6 @@ public:
       {
         if ((_mjpeg_buf_offset > 0) && (_mjpeg_buf[_mjpeg_buf_offset - 1] == 0xFF) && (_p[0] == 0xD9)) // JPEG trailer
         {
-          // Serial.printf("Found FFD9 at: %d.\n", i);
           found_FFD9 = true;
         }
         else
@@ -153,19 +252,19 @@ public:
           }
         }
 
-        // Serial.printf("i: %d\n", i);
+        // printf("i: %d\n", i);
         memcpy(_mjpeg_buf + _mjpeg_buf_offset, _p, i);
         _mjpeg_buf_offset += i;
-        size_t o = _buf_read - i;
+        int32_t o = _buf_read - i;
         if (o > 0)
         {
-          // Serial.printf("o: %d\n", o);
+          // printf("o: %d\n", o);
           memcpy(_read_buf, _p + i, o);
           _buf_read = _input->readBytes(_read_buf + o, READ_BUFFER_SIZE - o);
           _p = _read_buf;
           _inputindex += _buf_read;
           _buf_read += o;
-          // Serial.printf("_buf_read: %d\n", _buf_read);
+          // printf("_buf_read: %d\n", _buf_read);
         }
         else
         {
@@ -177,6 +276,7 @@ public:
       }
       if (found_FFD9)
       {
+        // printf("Found FFD9 at: %d.\n", _mjpeg_buf_offset);
         return true;
       }
     }
@@ -186,54 +286,82 @@ public:
 
   int getWidth()
   {
-    return _jpeg.getWidth();
+    return _jpegDec.getWidth();
   }
 
   int getHeight()
   {
-    return _jpeg.getHeight();
+    return _jpegDec.getHeight();
   }
 
   bool drawJpg()
   {
-    _remain = _mjpeg_buf_offset;
-
-    if (_enableMultiTask)
+    if (_enableDecodeMultiTask)
     {
-      _jpeg.openRAM(_mjpeg_buf, _remain, queueDrawMCU);
+      ++_decode_queue_cnt;
+      if ((_decode_queue_cnt - _decode_cnt) > NUMBER_OF_DECODE_BUFFER)
+      {
+        printf("decode queue overflow!\n");
+        while ((_decode_queue_cnt - _decode_cnt) > NUMBER_OF_DECODE_BUFFER)
+        {
+          vTaskDelay(1);
+        }
+      }
+      // printf("queue decodeTask start\n");
+      mjpegBuf *mBuf = &_mjpegBufs[_mBufIdx];
+      mBuf->size = _mjpeg_buf_offset;
+      // printf("_mjpegBufs[%d].size: %d.\n", _mBufIdx, _mjpegBufs[_mBufIdx].size);
+      // printf("_mjpegBufs[%d].buf start: %X %X, end: %X, %X.\n", _mjpegBufs, _mjpegBufs[_mBufId].buf[0], _mjpegBufs[_mBufIdx].buf[1], _mjpegBufs[_mBufIdx].buf[_mjpeg_buf_offset - 2], _mjpegBufs[_mBufIdx].buf[_mjpeg_buf_offset - 1]);
+      xQueueSend(_pDecodeTask.xqh, &mBuf, 0);
+      ++_mBufIdx;
+      if (_mBufIdx >= NUMBER_OF_DECODE_BUFFER)
+      {
+        _mBufIdx = 0;
+      }
+      _mjpeg_buf = _mjpegBufs[_mBufIdx].buf;
+      // printf("queue decodeTask end\n");
     }
     else
     {
-      _jpeg.openRAM(_mjpeg_buf, _remain, _pfnDraw);
-    }
+      unsigned long s = millis();
 
-    _jpeg.setMaxOutputSize(MAXOUTPUTSIZE);
-    if (_useBigEndian)
-    {
-      _jpeg.setPixelType(RGB565_BIG_ENDIAN);
+      _remain = _mjpeg_buf_offset;
+
+      _jpegDec.openRAM(_mjpegBufs[_mBufIdx].buf, _remain, _pDrawTask.drawFunc);
+
+      // _jpegDec.setMaxOutputSize(MAXOUTPUTSIZE);
+      if (_useBigEndian)
+      {
+        _jpegDec.setPixelType(RGB565_BIG_ENDIAN);
+      }
+      _jpegDec.decode(0, 0, 0);
+      _jpegDec.close();
+
+      total_decode_video_ms += millis() - s;
     }
-    _jpeg.decode(0, 0, 0);
-    _jpeg.close();
 
     return true;
   }
 
 private:
   Stream *_input;
-  uint8_t *_mjpeg_buf;
   JPEG_DRAW_CALLBACK *_pfnDraw;
-  bool _enableMultiTask;
-  bool _useBigEndian;
+  bool _enableDecodeMultiTask;
 
   uint8_t *_read_buf;
   int32_t _mjpeg_buf_offset = 0;
 
-  JPEGDEC _jpeg;
-  paramDrawTask _p;
+  TaskHandle_t _decodeTask;
+  TaskHandle_t _drawTask;
+  paramDecodeTask _pDecodeTask;
+  paramDrawTask _pDrawTask;
+  uint8_t *_mjpeg_buf;
+  uint8_t _mBufIdx = 0;
 
   int32_t _inputindex = 0;
   int32_t _buf_read;
   int32_t _remain = 0;
+  mjpegBuf _mjpegBufs[NUMBER_OF_DECODE_BUFFER];
 };
 
 #endif // _MJPEGCLASS_H_
