@@ -7,7 +7,7 @@ Simple example for playing RGB565 raw video
 Please find more details at instructables:
 https://www.instructables.com/id/Play-Video-With-ESP32/
 
-## Fastest Exaample
+## Fastest Example
 
 Currently SPIFFS_MJPEG_JPEGDEC_MP3_audio_ESP32I2S8 is the fastest example that can reach 30fps@320x240 with 22050 mono MP3 playing at the same time.
 
