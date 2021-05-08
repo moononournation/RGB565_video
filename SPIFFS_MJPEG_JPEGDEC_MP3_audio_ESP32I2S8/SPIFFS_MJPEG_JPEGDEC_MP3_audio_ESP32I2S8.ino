@@ -24,6 +24,7 @@
  */
 
 #include <WiFi.h>
+#include <SPIFFS.h>
 #include <FS.h>
 #include <FFat.h>
 #include <SD_MMC.h>
@@ -80,15 +81,17 @@ void setup()
 #endif
 
   // Init FS
+  // if (!SPIFFS.begin(true))
   if (!FFat.begin())
   // if ((!SD_MMC.begin()) && (!SD_MMC.begin())) /* 4-bit SD bus mode */
   // if ((!SD_MMC.begin("/sdcard", true)) && (!SD_MMC.begin("/sdcard", true))) /* 1-bit SD bus mode */
   {
-    Serial.println(F("ERROR: SD card mount failed!"));
-    gfx->println(F("ERROR: SD card mount failed!"));
+    Serial.println(F("ERROR: File system mount failed!"));
+    gfx->println(F("ERROR: File system mount failed!"));
   }
   else
   {
+    // aFile = new AudioFileSourceFS(SPIFFS, MP3_FILENAME);
     aFile = new AudioFileSourceFS(FFat, MP3_FILENAME);
     // aFile = new AudioFileSourceFS(SD_MMC, MP3_FILENAME);
     out = new AudioOutputI2S(0, 0, 64); // Output to builtInDAC
@@ -96,6 +99,7 @@ void setup()
     out->SetGain(0.2);
     mp3 = new AudioGeneratorMP3();
 
+    // File vFile = SPIFFS.open(MJPEG_FILENAME);
     File vFile = FFat.open(MJPEG_FILENAME);
     // File vFile = SD_MMC.open(MJPEG_FILENAME);
     if (!vFile || vFile.isDirectory())
@@ -137,7 +141,7 @@ void setup()
         }
         curr_ms = millis();
 
-        // // Play audio
+        // Play audio
         if ((mp3->isRunning()) && (!mp3->loop()))
         {
           mp3->stop();

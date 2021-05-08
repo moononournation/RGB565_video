@@ -31,7 +31,7 @@
 #define TFT_BRIGHTNESS 128
 #define TFT_BL 22
 Arduino_DataBus *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 1 /* rotation */);
+Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
 
 /* MP3 Audio */
 #include <AudioFileSourceFS.h>
@@ -53,7 +53,6 @@ static unsigned long total_play_audio = 0;
 static unsigned long total_read_video = 0;
 static unsigned long total_decode_video = 0;
 static unsigned long total_show_video = 0;
-static unsigned long total_remain = 0;
 static unsigned long start_ms, curr_ms, next_frame_ms;
 
 // pixel drawing callback
@@ -112,22 +111,18 @@ void setup()
       {
         Serial.println(F("PCM audio MJPEG video start"));
 
-        start_ms = millis();
-        curr_ms = millis();
+        // init Video
         mjpeg.setup(&vFile, mjpeg_buf, drawMCU, true, true);
+
+        // init audio
         mp3->begin(aFile, out);
+
+        start_ms = millis();
+        curr_ms = start_ms;
         next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
 
         while (vFile.available())
         {
-          // Play audio
-          if ((mp3->isRunning()) && (!mp3->loop()))
-          {
-            mp3->stop();
-          }
-          total_play_audio += millis() - curr_ms;
-          curr_ms = millis();
-
           // Read video
           mjpeg.readMjpegBuf();
           total_read_video += millis() - curr_ms;
@@ -138,18 +133,24 @@ void setup()
             // Play video
             mjpeg.drawJpg();
             total_decode_video += millis() - curr_ms;
-
-            int remain_ms = next_frame_ms - millis();
-            if (remain_ms > 0)
-            {
-              total_remain += remain_ms;
-              delay(remain_ms);
-            }
           }
           else
           {
             ++skipped_frames;
             Serial.println(F("Skip frame"));
+          }
+          curr_ms = millis();
+
+          // Play audio
+          if ((mp3->isRunning()) && (!mp3->loop()))
+          {
+            mp3->stop();
+          }
+          total_play_audio += millis() - curr_ms;
+
+          while (millis() < next_frame_ms)
+          {
+            vTaskDelay(1);
           }
 
           curr_ms = millis();
@@ -170,7 +171,6 @@ void setup()
         Serial.printf("SDMMC read MJPEG: %lu ms (%0.1f %%)\n", total_read_video, 100.0 * total_read_video / time_used);
         Serial.printf("Decode video: %lu ms (%0.1f %%)\n", total_decode_video, 100.0 * total_decode_video / time_used);
         Serial.printf("Show video: %lu ms (%0.1f %%)\n", total_show_video, 100.0 * total_show_video / time_used);
-        Serial.printf("Remain: %lu ms (%0.1f %%)\n", total_remain, 100.0 * total_remain / time_used);
 
 #define CHART_MARGIN 24
 #define LEGEND_A_COLOR 0xE0C3
