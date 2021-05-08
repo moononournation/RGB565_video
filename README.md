@@ -75,6 +75,10 @@ Currently SPIFFS_MJPEG_JPEGDEC_MP3_audio_ESP32I2S8 is the fastest example that c
 
 `ffmpeg -i input.mp4 -vf "fps=15,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_15fps.mjpeg`
 
+#### 320x240@24fps
+
+`ffmpeg -i input.mp4 -vf "fps=24,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_24fps.mjpeg`
+
 #### 320x240@30fps
 
 `ffmpeg -i input.mp4 -vf "fps=30,scale=-1:240:flags=lanczos,crop=320:in_h:(in_w-320)/2:0" -q:v 9 320_30fps.mjpeg`
