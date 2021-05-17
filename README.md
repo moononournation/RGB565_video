@@ -11,13 +11,7 @@ https://www.instructables.com/id/Play-Video-With-ESP32/
 
 Currently SPIFFS_MJPEG_JPEGDEC_MP3_audio_ESP32I2S8 is the fastest example that can reach 30fps@320x240 with 22050 mono MP3 playing at the same time.
 
-<div align="center">
-    <a href="https://youtu.be/9azhmFFMqG4" target="_blank">
-        <img src="https://img.youtube.com/vi/9azhmFFMqG4/0.jpg" 
-            alt="Arduino_GFX 30fps@320x240 MJPEG with 22050 mono MP3"
-            style="width:100%;">
-    </a>
-</div>
+[![Arduino_GFX 30fps@320x240 MJPEG with 22050 mono MP3](https://img.youtube.com/vi/9azhmFFMqG4/0.jpg)](https://youtu.be/9azhmFFMqG4)
 
 ## Convert video for SPIFFS
 
