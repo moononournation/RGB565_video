@@ -10,16 +10,16 @@
 #define TFT_BL 32
 #define SS 4
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
-Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
 #elif defined(ARDUINO_ODROID_ESP32)
 #define TFT_BL 14
 Arduino_HWSPI *bus = new Arduino_HWSPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-// Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
+// Arduino_GFX *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
 #elif defined(ARDUINO_T) // TTGO T-Watch
 #define TFT_BL 12
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
 #define SCK 18
 #define MOSI 23
@@ -28,10 +28,10 @@ Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, tr
 #define TFT_BL 22
 // ST7789 Display
 // Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, SCK, MOSI, MISO);
-// Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
+// Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
 #endif /* not a specific hardware */
 
 #include "MjpegClass.h"
@@ -79,7 +79,7 @@ void setup()
       else
       {
         Serial.println(F("MJPEG video start"));
-        mjpeg.setup(vFile, mjpeg_buf, gfx, true);
+        mjpeg.setup(vFile, mjpeg_buf, (Arduino_TFT *)gfx, true);
         // Read video
         while (mjpeg.readMjpegBuf())
         {
@@ -95,8 +95,8 @@ void setup()
   delay(60000);
   ledcDetachPin(TFT_BL);
 #endif
-  gfx->displayOff();
-  esp_deep_sleep_start();
+  // gfx->displayOff();
+  // esp_deep_sleep_start();
 }
 
 void loop()

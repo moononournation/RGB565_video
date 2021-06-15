@@ -29,12 +29,12 @@
 #define TFT_BRIGHTNESS 128
 // ST7789 Display
 // #define TFT_BL 32
-//Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-//Arduino_ST7789 *gfx = new Arduino_ST7789(bus, 33 /* RST */, 3 /* rotation */, true /* IPS */);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+// Arduino_GFX *gfx = new Arduino_ST7789(bus, 33 /* RST */, 3 /* rotation */, true /* IPS */);
 // ILI9225 Display
 #define TFT_BL 22
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
 
 #include "MjpegClass.h"
 static MjpegClass mjpeg;
@@ -130,7 +130,7 @@ void setup()
               Serial.println(F("PCM audio MJPEG video start"));
               start_ms = millis();
               curr_ms = millis();
-              mjpeg.setup(vFile, mjpeg_buf, gfx, true);
+              mjpeg.setup(vFile, mjpeg_buf, (Arduino_TFT *)gfx, true);
               next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
 
               // prefetch first audio buffer
@@ -273,8 +273,8 @@ void setup()
   delay(60000);
   ledcDetachPin(TFT_BL);
 #endif
-  gfx->displayOff();
-  esp_deep_sleep_start();
+  // gfx->displayOff();
+  // esp_deep_sleep_start();
 }
 
 void loop()

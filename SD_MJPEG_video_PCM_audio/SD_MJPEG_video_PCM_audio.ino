@@ -32,26 +32,26 @@
 #define TFT_BL 32
 #define SS 4
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
-Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
 #elif defined(ARDUINO_ODROID_ESP32)
 #define TFT_BL 14
 Arduino_HWSPI *bus = new Arduino_HWSPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-// Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
+// Arduino_GFX *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
 #elif defined(ARDUINO_T) // TTGO T-Watch
 #define TFT_BL 12
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
 #define SS 0
 // ST7789 Display
 // #define TFT_BL 22
 // Arduino_HWSPI *bus = new Arduino_HWSPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-// Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
+// Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
 #define TFT_BL 22
 Arduino_HWSPI *bus = new Arduino_HWSPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
-Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
 #endif /* not a specific hardware */
 
 #include "MjpegClass.h"
@@ -98,7 +98,7 @@ void setup()
         .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
         .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_PCM | I2S_COMM_FORMAT_I2S_MSB),
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1, // lowest interrupt priority
-        .dma_buf_count = 5, // 30 FPS
+        .dma_buf_count = 5,                       // 30 FPS
         // .dma_buf_count = 9, // 15 FPS
         .dma_buf_len = 490,
         .use_apll = false,
@@ -151,7 +151,7 @@ void setup()
               Serial.println(F("PCM audio MJPEG video start"));
               start_ms = millis();
               curr_ms = millis();
-              mjpeg.setup(vFile, mjpeg_buf, gfx, true);
+              mjpeg.setup(vFile, mjpeg_buf, (Arduino_TFT *)gfx, true);
               next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
 
               // prefetch first audio buffer
@@ -294,8 +294,8 @@ void setup()
   delay(60000);
   ledcDetachPin(TFT_BL);
 #endif
-  gfx->displayOff();
-  esp_deep_sleep_start();
+  // gfx->displayOff();
+  // esp_deep_sleep_start();
 }
 
 void loop()

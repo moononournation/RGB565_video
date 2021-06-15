@@ -23,27 +23,27 @@ AudioOutputI2S *out;
 #define TFT_BL 32
 #define SS 4
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 14 /* CS */, SCK, MOSI, MISO);
-Arduino_ILI9341_M5STACK *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ILI9341_M5STACK(bus, 33 /* RST */, 1 /* rotation */);
 #elif defined(ARDUINO_ODROID_ESP32)
 #define TFT_BL 14
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(21 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-// Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
+// Arduino_GFX *gfx = new Arduino_ILI9341(bus, -1 /* RST */, 3 /* rotation */);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 1 /* rotation */, true /* IPS */);
 #elif defined(ARDUINO_T) // TTGO T-Watch
 #define TFT_BL 12
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, SCK, MOSI, MISO);
-Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
+Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240, 240, 0, 80);
 #else /* not a specific hardware */
 // ST7789 Display
 // #define TFT_BL 22
 // Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(15 /* DC */, 12 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
-// Arduino_ST7789 *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
+// Arduino_GFX *gfx = new Arduino_ST7789(bus, -1 /* RST */, 2 /* rotation */, true /* IPS */, 240 /* width */, 240 /* height */, 0 /* col offset 1 */, 80 /* row offset 1 */);
 // ILI9225 Display
 #define TFT_BL 22
-//Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
-//Arduino_ILI9225 *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */);
+// Arduino_GFX *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
 Arduino_DataBus *bus = new Arduino_ESP32PAR8(27 /* DC */, 5 /* CS */, 25 /* WR */, 32 /* RD */, 23 /* D0 */, 19 /* D1 */, 18 /* D2 */, 26 /* D3 */, 21 /* D4 */, 4 /* D5 */, 0 /* D6 */, 2 /* D7 */);
-Arduino_TFT *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 0 /* rotation */, true /* IPS */);
+Arduino_GFX *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 0 /* rotation */, true /* IPS */);
 
 #endif /* not a specific hardware */
 
@@ -121,7 +121,7 @@ void setup()
         curr_ms = millis();
         next_frame_ms = start_ms + (++next_frame * 1000 / FPS / 2);
 
-        mjpeg.setup(vFile, mjpeg_buf, gfx, false);
+        mjpeg.setup(vFile, mjpeg_buf, (Arduino_TFT *)gfx, false);
         mp3->begin(file, out);
         xTaskCreatePinnedToCore(&playMp3Task, "playMp3Task", 2048, mp3, 1, NULL, 0);
 
@@ -218,8 +218,8 @@ void setup()
   delay(60000);
   ledcDetachPin(TFT_BL);
 #endif
-  gfx->displayOff();
-  esp_deep_sleep_start();
+//  gfx->displayOff();
+//  esp_deep_sleep_start();
 }
 
 void loop()
