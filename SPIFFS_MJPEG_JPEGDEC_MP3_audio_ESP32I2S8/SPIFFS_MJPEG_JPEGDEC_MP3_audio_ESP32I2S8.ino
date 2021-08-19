@@ -33,7 +33,7 @@
 #include <Arduino_GFX_Library.h>
 #define TFT_BL 22
 Arduino_DataBus *bus = new Arduino_ESP32I2S8(27 /* DC */, 5 /* CS */, 25 /* WR */, 32 /* RD */, 23 /* D0 */, 19 /* D1 */, 18 /* D2 */, 26 /* D3 */, 21 /* D4 */, 4 /* D5 */, 0 /* D6 */, 2 /* D7 */);
-Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 1 /* rotation */, true);
+Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 1 /* rotation */, true /* IPS */);
 
 /* MP3 Audio */
 #include <AudioFileSourceFS.h>

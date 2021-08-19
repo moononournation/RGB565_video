@@ -35,6 +35,10 @@
 #define TFT_BL 22
 Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
 Arduino_GFX *gfx = new Arduino_ILI9225(bus, 33 /* RST */, 3 /* rotation */);
+// ILI9341 Display
+// #define TFT_BL 22
+// Arduino_ESP32SPI *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, 19 /* MISO */);
+// Arduino_GFX *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 3 /* rotation */);
 
 #include "MjpegClass.h"
 static MjpegClass mjpeg;

@@ -32,7 +32,7 @@
 #include <Arduino_GFX_Library.h>
 #define TFT_BL 22
 Arduino_DataBus *bus = new Arduino_ESP32SPI(27 /* DC */, 5 /* CS */, 18 /* SCK */, 23 /* MOSI */, -1 /* MISO */, VSPI /* spi_num */);
-Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 3 /* rotation */, false);
+Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 3 /* rotation */, false /* IPS */);
 
 /* MP3 Audio */
 #include <AudioFileSourceFS.h>
@@ -92,7 +92,7 @@ void setup()
     aFile = new AudioFileSourceFS(FFat, MP3_FILENAME);
     // aFile = new AudioFileSourceFS(SD_MMC, MP3_FILENAME);
     out = new AudioOutputI2S(0, 0, 64); // Output to builtInDAC
-    out->SetPinout(14, 13, 12);
+    out->SetPinout(26, 25, 32);
     out->SetGain(0.2);
     mp3 = new AudioGeneratorMP3();
 
@@ -137,7 +137,7 @@ void setup()
         }
         curr_ms = millis();
 
-        // // Play audio
+        // Play audio
         if ((mp3->isRunning()) && (!mp3->loop()))
         {
           mp3->stop();
