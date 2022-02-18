@@ -21,8 +21,7 @@ typedef struct
 
 static xQueueHandle xqh = 0;
 static JPEGDRAW jpegdraws[NUMBER_OF_DRAW_BUFFER];
-static int queue_cnt = 0;
-static int draw_cnt = 0;
+static int queue_cnt, draw_cnt;
 
 static int queueDrawMCU(JPEGDRAW *pDraw)
 {
@@ -77,6 +76,13 @@ public:
     _enableMultiTask = enableMultiTask;
     _useBigEndian = useBigEndian;
 
+    _mjpeg_buf_offset = 0;
+    _inputindex = 0;
+    _remain = 0;
+
+    queue_cnt = 0;
+    draw_cnt = 0;
+
     if (!_read_buf)
     {
       _read_buf = (uint8_t *)malloc(READ_BUFFER_SIZE);
@@ -84,10 +90,13 @@ public:
 
     if (_enableMultiTask)
     {
-      TaskHandle_t task;
-      _p.drawFunc = pfnDraw;
-      xqh = xQueueCreate(NUMBER_OF_DRAW_BUFFER, sizeof(JPEGDRAW));
-      xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_p, 1, &task, 0);
+      if (!xqh)
+      {
+        TaskHandle_t task;
+        _p.drawFunc = pfnDraw;
+        xqh = xQueueCreate(NUMBER_OF_DRAW_BUFFER, sizeof(JPEGDRAW));
+        xTaskCreatePinnedToCore(drawTask, "drawTask", 1600, &_p, 1, &task, 0);
+      }
     }
 
     return true;
@@ -223,14 +232,14 @@ private:
   bool _useBigEndian;
 
   uint8_t *_read_buf;
-  int32_t _mjpeg_buf_offset = 0;
+  int32_t _mjpeg_buf_offset;
 
   JPEGDEC _jpeg;
   paramDrawTask _p;
 
-  int32_t _inputindex = 0;
+  int32_t _inputindex;
   int32_t _buf_read;
-  int32_t _remain = 0;
+  int32_t _remain;
 };
 
 #endif // _MJPEGCLASS_H_
