@@ -24,13 +24,16 @@
  */
 
 #include <WiFi.h>
-#include <SPIFFS.h>
 #include <FS.h>
+#include <LittleFS.h>
+#include <SPIFFS.h>
 #include <FFat.h>
+#include <SD.h>
 #include <SD_MMC.h>
 
 /* Arduino_GFX */
 #include <Arduino_GFX_Library.h>
+
 #define TFT_BL 22
 Arduino_DataBus *bus = new Arduino_ESP32I2S8(27 /* DC */, 5 /* CS */, 25 /* WR */, 32 /* RD */, 23 /* D0 */, 19 /* D1 */, 18 /* D2 */, 26 /* D3 */, 21 /* D4 */, 4 /* D5 */, 0 /* D6 */, 2 /* D7 */);
 Arduino_ILI9341 *gfx = new Arduino_ILI9341(bus, 33 /* RST */, 1 /* rotation */, true /* IPS */);
@@ -71,7 +74,7 @@ void setup()
   WiFi.mode(WIFI_OFF);
   Serial.begin(115200);
 
-  // Init Video
+  // Init Display
   gfx->begin();
   gfx->fillScreen(BLACK);
 
@@ -80,7 +83,8 @@ void setup()
   digitalWrite(TFT_BL, HIGH);
 #endif
 
-  // Init FS
+  gfx->println("Init FS");
+  // if (!LittleFS.begin())
   // if (!SPIFFS.begin(true))
   if (!FFat.begin())
   // if ((!SD_MMC.begin()) && (!SD_MMC.begin())) /* 4-bit SD bus mode */
@@ -91,6 +95,7 @@ void setup()
   }
   else
   {
+    // aFile = new AudioFileSourceFS(LittleFS, MP3_FILENAME);
     // aFile = new AudioFileSourceFS(SPIFFS, MP3_FILENAME);
     aFile = new AudioFileSourceFS(FFat, MP3_FILENAME);
     // aFile = new AudioFileSourceFS(SD_MMC, MP3_FILENAME);
@@ -99,6 +104,8 @@ void setup()
     out->SetGain(0.2);
     mp3 = new AudioGeneratorMP3();
 
+    gfx->println("Open " MJPEG_FILENAME);
+    // File vFile = LittleFS.open(MJPEG_FILENAME);
     // File vFile = SPIFFS.open(MJPEG_FILENAME);
     File vFile = FFat.open(MJPEG_FILENAME);
     // File vFile = SD_MMC.open(MJPEG_FILENAME);
@@ -111,22 +118,21 @@ void setup()
     {
       Serial.println(F("PCM audio MJPEG video start"));
 
-      // init Video
+      gfx->println("Init video");
       mjpeg.setup(&vFile, MJPEG_BUFFER_SIZE, drawMCU,
                   true /* enableDecodeMultiTask */,
                   true /* enableDrawMultiTask */,
                   true /* useBigEndian */);
 
-      // init audio
+      gfx->println("Init audio");
       mp3->begin(aFile, out);
 
+      gfx->println("Start play");
       start_ms = millis();
       curr_ms = start_ms;
       next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
-      while (vFile.available())
+      while (vFile.available() && mjpeg.readMjpegBuf()) // Read video
       {
-        // Read video
-        mjpeg.readMjpegBuf();
         total_read_video_ms += millis() - curr_ms;
 
         if (millis() < next_frame_ms) // check show frame or skip frame
