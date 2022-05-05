@@ -116,7 +116,7 @@ void setup()
     }
     else
     {
-      Serial.println(F("PCM audio MJPEG video start"));
+      Serial.println(F("MP3 audio MJPEG video start"));
 
       gfx->println("Init video");
       mjpeg.setup(&vFile, MJPEG_BUFFER_SIZE, drawMCU,
@@ -164,7 +164,7 @@ void setup()
       }
       int time_used = millis() - start_ms;
       int total_frames = next_frame - 1;
-      Serial.println(F("PCM audio MJPEG video end"));
+      Serial.println(F("MP3 audio MJPEG video end"));
       vFile.close();
       int played_frames = total_frames - skipped_frames;
       float fps = 1000.0 * played_frames / time_used;
@@ -242,7 +242,7 @@ void setup()
   }
 #ifdef TFT_BL
   delay(60000);
-  ledcDetachPin(TFT_BL);
+  digitalWrite(TFT_BL, LOW);
 #endif
   gfx->displayOff();
   esp_deep_sleep_start();
