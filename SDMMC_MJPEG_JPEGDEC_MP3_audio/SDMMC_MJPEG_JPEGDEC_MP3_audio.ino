@@ -128,10 +128,8 @@ void loop()
   curr_ms = start_ms;
   next_frame_ms = start_ms + (++next_frame * 1000 / FPS);
 
-  while (vFile.available())
+  while (vFile.available() && mjpeg.readMjpegBuf()) // Read video
   {
-    // Read video
-    mjpeg.readMjpegBuf();
     total_read_video += millis() - curr_ms;
     curr_ms = millis();
 
