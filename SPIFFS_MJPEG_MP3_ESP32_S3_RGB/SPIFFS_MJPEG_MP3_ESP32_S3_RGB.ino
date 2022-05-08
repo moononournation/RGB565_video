@@ -4,11 +4,11 @@
    https://github.com/earlephilhower/ESP8266Audio.git
    https://github.com/bitbank2/JPEGDEC.git
 */
-#define MP3_FILENAME "/root/22050dual.mp3"
+#define MP3_FILENAME "/44100.mp3"
 #define FPS 15
 #define MJPEG_FILENAME "/480_15fps.mjpeg"
-#define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
-/*mi
+#define MJPEG_BUFFER_SIZE (480 * 270 * 2 / 4)
+/*
    Connect the SD card to the following pins:
 
    SD Card | ESP32
@@ -31,9 +31,8 @@
 #include <SD.h>
 #include <SD_MMC.h>
 
-#include "src/audio.h"
-#include "src/bsp_i2c.h"
-#include "src/coder.h"
+#include <Wire.h>
+#include "es8311.h"
 
 /* Arduino_GFX */
 #include <Arduino_GFX_Library.h>
@@ -52,10 +51,6 @@ Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
 );
 Arduino_ST7701_RGBPanel *gfx = new Arduino_ST7701_RGBPanel(bus, GFX_NOT_DEFINED, 480, 480);
 
-/* MJPEG Video */
-#include "MjpegClass.h"
-static MjpegClass mjpeg;
-
 /* variables */
 static int next_frame = 0;
 static int skipped_frames = 0;
@@ -63,6 +58,13 @@ static unsigned long total_play_audio_ms = 0;
 static unsigned long total_read_video_ms = 0;
 static unsigned long total_show_video_ms = 0;
 static unsigned long start_ms, curr_ms, next_frame_ms;
+
+/* MP3 audio */
+#include "esp32_audio.h"
+
+/* MJPEG Video */
+#include "MjpegClass.h"
+static MjpegClass mjpeg;
 
 // pixel drawing callback
 static int drawMCU(JPEGDRAW *pDraw)
@@ -89,6 +91,18 @@ void setup()
   digitalWrite(TFT_BL, HIGH);
 #endif
 
+  gfx->println("Init Wire");
+  Wire.begin(40 /* SDA */, 41 /* SCL */);
+
+  gfx->println("Init ES8311");
+  es8311_codec_config(AUDIO_HAL_44K_SAMPLES);
+  es8311_codec_set_voice_volume(60);
+
+  gfx->println("Init I2S");
+  i2s_init(I2S_NUM_0, 44100,
+           42 /* MCLK */, 46 /* SCLK */, 45 /* LRCK */, 43 /* DOUT */, 44 /* DIN */);
+  i2s_zero_dma_buffer(I2S_NUM_0);
+
   gfx->println("Init FS");
   // if (!LittleFS.begin(false, "/root"))
   // if (!SPIFFS.begin(false, "/root"))
@@ -101,11 +115,7 @@ void setup()
   }
   else
   {
-    /* Initialize I2C 400KHz */
-    bsp_i2c_init(I2C_NUM_0, 400000);
-    es8311_codec_set_voice_volume(100);
-
-    gfx->println("Open " MJPEG_FILENAME);
+    gfx->println("Open video file: " MJPEG_FILENAME);
     // File vFile = LittleFS.open(MJPEG_FILENAME);
     // File vFile = SPIFFS.open(MJPEG_FILENAME);
     File vFile = FFat.open(MJPEG_FILENAME);
@@ -131,13 +141,14 @@ void setup()
           &vFile, mjpeg_buf, drawMCU, true /* useBigEndian */,
           0 /* x */, 0 /* y */, gfx->width() /* widthLimit */, gfx->height() /* heightLimit */);
 
-        gfx->println("Init audio");
-        mp3_player_start((char *)MP3_FILENAME);
-
-        gfx->println("Start play");
         start_ms = millis();
         curr_ms = millis();
         next_frame_ms = start_ms + (++next_frame * 1000 / FPS / 2);
+
+        gfx->println("Start play audio file: " MP3_FILENAME);
+        mp3_player_task_start((char *)MP3_FILENAME);
+
+        gfx->println("Start play video");
         while (vFile.available() && mjpeg.readMjpegBuf()) // Read video
         {
           total_read_video_ms += millis() - curr_ms;
