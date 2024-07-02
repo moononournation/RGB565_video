@@ -71,8 +71,8 @@ void setup()
   gfx->fillScreen(BLACK);
 
 #ifdef TFT_BL
-  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
   ledcSetup(1, 12000, 8);       // 12 kHz PWM, 8-bit resolution
+  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
   ledcWrite(1, TFT_BRIGHTNESS); // brightness 0 - 255
 #endif
 

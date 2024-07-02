@@ -1,10 +1,10 @@
 #define AUDIO_FILENAME "/44100_u16le.pcm"
- #define FPS 30
- #define MJPEG_FILENAME "/220_30fps.mjpeg"
- #define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
-//#define FPS 15
-//#define MJPEG_FILENAME "/320_15fps.mjpeg"
-//#define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
+#define FPS 30
+#define MJPEG_FILENAME "/220_30fps.mjpeg"
+#define MJPEG_BUFFER_SIZE (220 * 176 * 2 / 4)
+// #define FPS 15
+// #define MJPEG_FILENAME "/320_15fps.mjpeg"
+// #define MJPEG_BUFFER_SIZE (320 * 240 * 2 / 4)
 #define READ_BUFFER_SIZE 2048
 /*
  * Connect the SD card to the following pins:
@@ -61,8 +61,8 @@ void setup()
   gfx->fillScreen(BLACK);
 
 #ifdef TFT_BL
-  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
   ledcSetup(1, 12000, 8);       // 12 kHz PWM, 8-bit resolution
+  ledcAttachPin(TFT_BL, 1);     // assign TFT_BL pin to channel 1
   ledcWrite(1, TFT_BRIGHTNESS); // brightness 0 - 255
 #endif
 
@@ -153,10 +153,10 @@ void setup()
                 i2s_write_bytes((i2s_port_t)0, (char *)aBuf, 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 980), 980, 0);
                 i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 1960), 980, 0);
-//                // for 15 FPS
-//                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
-//                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
-//                i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
+                // // for 15 FPS
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 2940), 980, 0);
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 3920), 980, 0);
+                // i2s_write_bytes((i2s_port_t)0, (char *)(aBuf + 4900), 980, 0);
                 total_play_audio += millis() - curr_ms;
                 curr_ms = millis();
 
@@ -261,7 +261,7 @@ void setup()
               gfx->setTextColor(LEGEND_A_COLOR);
               gfx->printf("Play video:\n%0.1f %%\n", 100.0 * total_play_video / time_used);
 
-              i2s_driver_uninstall((i2s_port_t)0); //stop & destroy i2s driver
+              i2s_driver_uninstall((i2s_port_t)0); // stop & destroy i2s driver
               // avoid unexpected output at audio pins
               pinMode(25, OUTPUT);
               digitalWrite(25, LOW);
